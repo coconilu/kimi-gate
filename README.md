@@ -2,6 +2,8 @@
 
 自托管安全网关：出门在外，用手机浏览器远程访问 Kimi Code CLI `kimi web`。支持两种部署路线：
 
+> 📖 **只想快速用起来？** 看 [用户指南](docs/USER_GUIDE.md)——架构图、15 分钟上手、安全问答、故障排查，不需要技术背景。
+
 **路线 A · 同机直连**（`UPSTREAM_MODE=local`）：kimi web 就跑在这台 VPS 上，Gateway 直接回环代理，无需 Connector。
 
 ```
