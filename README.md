@@ -1,8 +1,46 @@
 # kimi-gate
 
-自托管安全网关：出门在外，用手机浏览器远程访问 Kimi Code CLI `kimi web`。支持两种部署路线：
+自托管安全网关：出门在外，用手机浏览器远程访问家里电脑上的 Kimi Code CLI `kimi web`。
+
+[![npm](https://img.shields.io/npm/v/kimi-gate-connector?label=kimi-gate-connector)](https://www.npmjs.com/package/kimi-gate-connector)
+[![ci](https://github.com/coconilu/kimi-gate/actions/workflows/ci.yml/badge.svg)](https://github.com/coconilu/kimi-gate/actions/workflows/ci.yml)
+[![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 > 📖 **只想快速用起来？** 看 [用户指南](docs/USER_GUIDE.md)——架构图、15 分钟上手、安全问答、故障排查，不需要技术背景。
+
+## 效果预览
+
+手机浏览器打开自己的域名，输密码即可远程使用 Kimi Code：
+
+<img src="docs/images/login-mobile.jpg" alt="登录页（手机视图）" width="280"> <img src="docs/images/app-mobile.jpg" alt="手机上使用 kimi web" width="280">
+
+家里电脑一行 npx 命令接入（无需克隆仓库，自带连通性自检）：
+
+![connector 自检通过并打印访问地址](docs/images/connector-terminal.jpg)
+
+自带管理台（`/admin`，进入需二次密码确认）：Connector 接入命令一键复制、修改密码、活跃会话管理、登录日志与 IP 封禁：
+
+![Connector 接入](docs/images/admin-connector.jpg)
+
+| 修改密码 | 活跃会话 |
+|---|---|
+| ![修改密码](docs/images/admin-password.jpg) | ![活跃会话](docs/images/admin-sessions.jpg) |
+
+![登录日志与 IP 封禁](docs/images/admin-logs.jpg)
+
+## 快速开始
+
+不用看文档，也不用懂部署——把下面这段话发给你的 AI 编程助手（Kimi Code / Claude Code / Cursor 等），它会全程引导你完成，包括帮你选服务器、生成密码、配域名解析，直到你能用手机登录：
+
+> 请阅读 https://github.com/coconilu/kimi-gate/blob/main/docs/AGENT_PLAYBOOK.md ，然后全程引导我完成 kimi-gate 的部署。我手上有一台会一直开机的电脑（装着 Kimi Code CLI），其他都还没有。请一步一步来，每个阶段告诉我该做什么。
+
+Agent 会按 [docs/AGENT_PLAYBOOK.md](docs/AGENT_PLAYBOOK.md)（部署操作手册，含过程总览表和真实踩坑记录）执行：选购建议 → 买服务器 → 域名解析 → 装 Gateway → HTTPS → 装 Connector → 验收 → 安全收尾。你只需要做选择题和点确认。
+
+想自己手动部署？看 [手动部署](#手动部署)。
+
+## 架构
+
+支持两种部署路线。
 
 **路线 A · 同机直连**（`UPSTREAM_MODE=local`）：kimi web 就跑在这台 VPS 上，Gateway 直接回环代理，无需 Connector。
 
@@ -27,30 +65,6 @@
 ```
 
 **核心安全设计**：kimi web 的 bearer token 只保存在 VPS Gateway 的配置里。Gateway 在向上游转发时注入 `Authorization: Bearer <token>` 请求头，手机端全程不接触该 token；路线 B 下家里 PC 也看不到 token，且家里网络零端口开放——Connector 只建立出站长连接。
-
-## 特性
-
-- 登录认证：管理员密码（argon2id，运行时缺失时回退 scrypt）+ 可选 TOTP 双因素（RFC 6238，无第三方依赖）
-- 会话：SQLite 会话表 + HttpOnly/SameSite 签名 Cookie
-- 登录限流：按设备指纹（IP + User-Agent）滑动窗口 10 次/分钟，超限 429，窗口数据落库、重启不丢
-- 登录审计：所有尝试（成功/密码错误/TOTP 错误/被限流/被封禁/CSRF 拒绝）写入 `login_attempts` 表
-- 管理台 `/admin`（进入需再次输入密码）：登录日志查询/筛选/导出 CSV、活跃会话列表与踢下线、IP 封禁/解封、隧道在线状态、修改管理员密码（改密成功后其他所有设备会话立即下线，本设备保持登录）
-- 隧道：自研 WSS 多路复用协议，同时支持 HTTP 请求/响应代理与 WebSocket 升级中继（kimi 聊天流是 WebSocket）
-- 双上游模式：`tunnel`（Connector 隧道）/ `local`（同机直连），认证、注入、审计、管理台行为完全一致
-- Connector：指数退避自动重连、心跳保活、HTTP + WS 转发本地 kimi web
-- 数据库：SQLite（Node 内置 `node:sqlite`，零原生依赖、零外部服务）
-
-> **运行要求**：Node.js ≥ 22.5（`node:sqlite`）。Node 22.5–23.x 需加 `--experimental-sqlite`；**推荐 Node 24**（免 flag，`crypto.argon2` 也可用）。包管理用 **pnpm**（Node 自带 corepack：`corepack enable` 一次即可，仓库已用 `packageManager` 字段锁定 pnpm 版本）。
-
-## 快速开始
-
-不用看文档，也不用懂部署——把下面这段话发给你的 AI 编程助手（Kimi Code / Claude Code / Cursor 等），它会全程引导你完成，包括帮你选服务器、生成密码、配域名解析，直到你能用手机登录：
-
-> 请阅读 https://github.com/coconilu/kimi-gate/blob/main/docs/AGENT_PLAYBOOK.md ，然后全程引导我完成 kimi-gate 的部署。我手上有一台会一直开机的电脑（装着 Kimi Code CLI），其他都还没有。请一步一步来，每个阶段告诉我该做什么。
-
-Agent 会按 [docs/AGENT_PLAYBOOK.md](docs/AGENT_PLAYBOOK.md)（部署操作手册，含过程总览表和真实踩坑记录）执行：选购建议 → 买服务器 → 域名解析 → 装 Gateway → HTTPS → 装 Connector → 验收 → 安全收尾。你只需要做选择题和点确认。
-
-想自己手动部署？往下看。
 
 ## 手动部署
 
@@ -126,6 +140,20 @@ pnpm run start
 
 手机浏览器打开 `https://gate.example.com` → 输入密码（+TOTP）→ 自动进入 kimi web。
 管理台在 `https://gate.example.com/admin`。
+
+## 特性
+
+- 登录认证：管理员密码（argon2id，运行时缺失时回退 scrypt）+ 可选 TOTP 双因素（RFC 6238，无第三方依赖）
+- 会话：SQLite 会话表 + HttpOnly/SameSite 签名 Cookie
+- 登录限流：按设备指纹（IP + User-Agent）滑动窗口 10 次/分钟，超限 429，窗口数据落库、重启不丢
+- 登录审计：所有尝试（成功/密码错误/TOTP 错误/被限流/被封禁/CSRF 拒绝）写入 `login_attempts` 表
+- 管理台 `/admin`（进入需再次输入密码）：登录日志查询/筛选/导出 CSV、活跃会话列表与踢下线、IP 封禁/解封、隧道在线状态、修改管理员密码（改密成功后其他所有设备会话立即下线，本设备保持登录）
+- 隧道：自研 WSS 多路复用协议，同时支持 HTTP 请求/响应代理与 WebSocket 升级中继（kimi 聊天流是 WebSocket）
+- 双上游模式：`tunnel`（Connector 隧道）/ `local`（同机直连），认证、注入、审计、管理台行为完全一致
+- Connector：指数退避自动重连、心跳保活、HTTP + WS 转发本地 kimi web
+- 数据库：SQLite（Node 内置 `node:sqlite`，零原生依赖、零外部服务）
+
+> **运行要求**：Node.js ≥ 22.5（`node:sqlite`）。Node 22.5–23.x 需加 `--experimental-sqlite`；**推荐 Node 24**（免 flag，`crypto.argon2` 也可用）。包管理用 **pnpm**（Node 自带 corepack：`corepack enable` 一次即可，仓库已用 `packageManager` 字段锁定 pnpm 版本）。
 
 ## 开发
 
