@@ -1,0 +1,44 @@
+# 发布 npm 包：打 v* tag 触发（如 git tag v0.1.0 && git push --tags）
+# 需要仓库 Secret: NPM_TOKEN（npmjs.com → Access Tokens → Granular / Automation）
+name: publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - run: corepack enable
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run build
+
+      - run: pnpm test
+
+      # 版本与 tag 一致性检查（防止忘了 bump）
+      - name: verify tag matches package versions
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          for pkg in shared connector; do
+            V=$(node -p "require('./packages/$pkg/package.json').version")
+            if [ "$V" != "$TAG" ]; then
+              echo "::error::packages/$pkg 版本 $V 与 tag $TAG 不一致"
+              exit 1
+            fi
+          done
+
+      # -r 按拓扑序发布：shared 先于 connector；private 包自动跳过
+      - run: pnpm -r publish --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
