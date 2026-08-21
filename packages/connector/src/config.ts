@@ -58,8 +58,15 @@ export function loadConfig(overrides: Partial<ConnectorConfig> = {}): ConnectorC
  * 解析命令行参数为配置覆盖项（优先级：CLI > 环境变量 > .env）。
  * 独立导出以便测试；非法参数抛出带中文提示的 Error。
  */
-export function parseCliArgs(argv: string[]): Partial<ConnectorConfig> & { check?: boolean; help?: boolean } {
-  const out: Partial<ConnectorConfig> & { check?: boolean; help?: boolean } = {};
+export interface CliFlags {
+  check?: boolean;
+  help?: boolean;
+  autostart?: boolean;
+  noAutostart?: boolean;
+}
+
+export function parseCliArgs(argv: string[]): Partial<ConnectorConfig> & CliFlags {
+  const out: Partial<ConnectorConfig> & CliFlags = {};
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const next = (): string => {
@@ -72,10 +79,15 @@ export function parseCliArgs(argv: string[]): Partial<ConnectorConfig> & { check
       case '--key': case '-k': out.connectorKey = next(); break;
       case '--target': case '-t': out.targetUrl = next(); break;
       case '--check': out.check = true; break;
+      case '--autostart': out.autostart = true; break;
+      case '--no-autostart': out.noAutostart = true; break;
       case '--help': case '-h': out.help = true; break;
       default:
         throw new Error(`未知参数: ${a}（用 --help 查看用法）`);
     }
+  }
+  if (out.autostart && out.noAutostart) {
+    throw new Error('--autostart 和 --no-autostart 不能同时使用');
   }
   return out;
 }

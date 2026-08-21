@@ -36,6 +36,15 @@ test('CLI 参数解析：缺值与未知参数报错', () => {
   assert.throws(() => parseCliArgs(['--nope']), /未知参数/);
 });
 
+test('CLI 参数解析：--autostart / --no-autostart 及互斥', () => {
+  assert.equal(parseCliArgs(['--autostart']).autostart, true);
+  assert.equal(parseCliArgs(['--no-autostart']).noAutostart, true);
+  assert.throws(
+    () => parseCliArgs(['--autostart', '--no-autostart']),
+    /不能同时使用/,
+  );
+});
+
 test('CLI 参数优先级高于 .env/环境变量', () => {
   const cfg = loadConfig(parseCliArgs(['--gateway', 'wss://cli.example.com', '--key', 'cli-key']));
   assert.equal(cfg.gatewayUrl, 'wss://cli.example.com');

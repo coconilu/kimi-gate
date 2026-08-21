@@ -134,7 +134,7 @@ npx kimi-gate-connector --gateway wss://kimi.example.com --key <CONNECTOR_KEY> -
 
 自检会自动区分：kimi web 没启动 / 非默认端口（提示 `--target`）/ 服务器不可达 / 密钥错误，按输出引导修复即可。
 
-**常驻方案（注册一次，重启自动运行，不需要用户每次手动跑）**：Windows 用任务计划程序 + VBS 隐藏启动或 NSSM（`packages/connector/README.md` 有完整命令），真实部署注册了两个任务：`KimiGateWeb`（kimi web）和 `KimiGateConnector`，命令都用这条 npx；日志重定向到文件（如 `%USERPROFILE%\.kimi-gate\logs\connector.log`），排查全靠它。Linux/macOS 用 systemd user unit 或 pm2。
+**常驻方案**：Connector **默认不自启**（前台运行，关掉就停）。需要开机自启时，在接入命令后加 `--autostart` 跑一次即可注册（Windows 计划任务隐藏启动 / Linux systemd 用户服务 / macOS LaunchAgent，日志位置会打印出来），`--no-autostart` 撤销。真实部署中家里电脑另注册了一个任务 `KimiGateWeb` 保证 kimi web 常驻；排查全靠日志文件（如 `%USERPROFILE%\.kimi-gate\connector.log`）。熟悉 NSSM / pm2 的用户也可以用顺手的工具托管同一条 npx 命令。
 
 验证：日志出现 `已连接 gateway: wss://...`；管理台 `https://kimi.example.com/admin` 顶部显示"隧道： 在线"。
 

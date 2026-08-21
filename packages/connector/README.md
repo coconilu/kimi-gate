@@ -33,38 +33,29 @@ npx kimi-gate-connector --gateway wss://<你的域名> --key <配对密钥> --ch
 | `-k, --key <key>` | 配对密钥（环境变量 `CONNECTOR_KEY`） |
 | `-t, --target <url>` | 本地 kimi web 地址，默认 `http://127.0.0.1:58627`（环境变量 `KIMI_LOCAL_URL`） |
 | `--check` | 只自检然后退出 |
+| `--autostart` | 注册开机自启后退出（Windows 计划任务 / Linux systemd 用户服务 / macOS launchd） |
+| `--no-autostart` | 移除开机自启后退出（无需其他参数） |
 | `-h, --help` | 帮助 |
 
 优先级：命令行 > 环境变量 > `.env` 文件（从源码运行时）。Connector 自带指数退避重连与心跳保活，断网恢复后自动重连。
 
 ## 常驻 / 开机自启
 
-npx 命令跑通后，**重启电脑不需要手动重跑**——用下面任一方式注册一次即可。
+**默认不自启**：npx 命令只在前台运行，关掉就停。需要开机自启的话，跑一次：
 
-### Windows 方式一：NSSM（推荐）
-
-```powershell
-nssm install kimi-gate-connector "C:\Program Files\nodejs\node.exe" "C:\Program Files\nodejs\node_modules\npx.cmd"
-# 或用完整路径直接调 npx.cmd：
-nssm install kimi-gate-connector "C:\Program Files\nodejs\npx.cmd" "kimi-gate-connector --gateway wss://<域名> --key <密钥>"
-nssm set kimi-gate-connector AppStdout "C:\Users\<你>\kimi-gate-connector.log"
-nssm set kimi-gate-connector AppStderr "C:\Users\<你>\kimi-gate-connector.log"
-nssm start kimi-gate-connector
+```bash
+npx kimi-gate-connector --gateway wss://<你的域名> --key <配对密钥> --autostart
 ```
 
-### Windows 方式二：任务计划程序（开机自启，无需第三方工具）
+会按当前系统自动注册（Windows 登录计划任务 / Linux systemd 用户服务 / macOS LaunchAgent），打印日志位置和撤销方法。想撤销：
 
-```powershell
-$action = New-ScheduledTaskAction -Execute "npx.cmd" `
-  -Argument "kimi-gate-connector --gateway wss://<域名> --key <密钥>"
-$trigger = New-ScheduledTaskTrigger -AtLogOn
-Register-ScheduledTask -TaskName "kimi-gate-connector" -Action $action -Trigger $trigger
-Start-ScheduledTask -TaskName "kimi-gate-connector"
+```bash
+npx kimi-gate-connector --no-autostart
 ```
 
-### Linux / macOS
+### 备选：手动注册（NSSM / pm2 等）
 
-systemd user unit 或 pm2，ExecStart 用同一条 npx 命令。
+熟悉 NSSM、pm2 或 systemd 的话，也可以用你顺手的工具托管同一条 npx 命令，效果一样。
 
 > 注意：家里电脑睡眠会导致隧道中断，记得关闭睡眠（Windows: `powercfg /change standby-timeout-ac 0`）。
 

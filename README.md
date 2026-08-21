@@ -106,7 +106,7 @@ npx kimi-gate-connector --gateway wss://<域名> --key <配对密钥>
 
 命令启动前会自动自检：本地 kimi web 是否在跑（没在跑会提示你启动，非默认端口会提示用 `--target` 指定）、Gateway 是否可达、配对密钥是否正确。全部通过才进入常驻；加 `--check` 只自检不常驻，适合部署后验证。
 
-**常驻/开机自启**（重启后不用重跑）：Windows 任务计划程序 / NSSM，Linux/macOS systemd user unit，命令都用上面这条 npx。详见 [packages/connector/README.md](packages/connector/README.md)。
+**常驻/开机自启**：默认不自启（关掉命令就停）。需要开机自启的话，在同一条命令后加 `--autostart` 跑一次即可注册（Windows 计划任务 / Linux systemd / macOS launchd），`--no-autostart` 撤销。详见 [packages/connector/README.md](packages/connector/README.md)。
 
 **从源码运行**（开发/二开）：
 

@@ -99,7 +99,7 @@ npx kimi-gate-connector --gateway wss://你的域名 --key <配对密钥> --chec
 
 命令会**自动自检**：本地 kimi web 有没有在跑、服务器通不通、密钥对不对。全部通过会打印 `✅ 自检全部通过`，然后去掉 `--check` 再跑一次即为常驻模式。没通过也别慌——它会直接告诉你修哪里（比如"kimi web 没启动，先运行 `kimi web --port 58627`"）。
 
-不用克隆仓库、不用改配置文件。**电脑重启也不用重跑**——想开机自启，按 [Connector 部署说明](../packages/connector/README.md) 用任务计划程序或 NSSM 注册一次即可（命令同样是这条 npx）。
+不用克隆仓库、不用改配置文件。**默认不开机自启**（命令关掉就停）；想开机自启，在同一条命令后加 `--autostart` 跑一次即可注册，`--no-autostart` 撤销，详见 [Connector 部署说明](../packages/connector/README.md)。
 
 ### 完成。日常使用就是：
 

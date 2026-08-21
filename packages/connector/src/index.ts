@@ -8,8 +8,10 @@
  * --check 只自检不常驻，用于部署后验证。
  */
 import { loadConfig, parseCliArgs } from './config.js';
+import os from 'node:os';
 import { startConnector } from './client.js';
 import { checkTarget, checkGateway } from './preflight.js';
+import { buildEnablePlan, buildDisablePlan, applyPlan, disableLeftoverFiles } from './autostart.js';
 
 const HELP = `
 kimi-gate-connector — 家里电脑与 kimi-gate Gateway 之间的加密隧道
@@ -22,9 +24,11 @@ kimi-gate-connector — 家里电脑与 kimi-gate Gateway 之间的加密隧道
   -k, --key <key>       配对密钥（管理台 /admin 的"Connector 接入"区块可复制完整命令）
   -t, --target <url>    本地 kimi web 地址，默认 http://127.0.0.1:58627
       --check           只做连通性自检然后退出（不常驻）
+      --autostart       注册开机自启（Windows 计划任务 / Linux systemd / macOS launchd）后退出
+      --no-autostart    移除开机自启后退出
   -h, --help            显示本帮助
 
-参数优先级：命令行 > 环境变量 > .env 文件。
+参数优先级：命令行 > 环境变量 > .env 文件。默认不自启，需要常驻才用 --autostart。
 `.trim();
 
 async function main(): Promise<number> {
@@ -41,6 +45,23 @@ async function main(): Promise<number> {
     return 0;
   }
 
+  // ---- 移除自启：不需要配置，直接执行 ----
+  if (cli.noAutostart) {
+    const plan = buildDisablePlan();
+    try {
+      const warnings = applyPlan(plan, {
+        removeFiles: disableLeftoverFiles(process.platform, os.homedir()),
+        ignoreCommandErrors: true,
+      });
+      console.log(`✓ ${plan.summary}`);
+      for (const w of warnings) console.warn(`  提示: ${w}`);
+      return 0;
+    } catch (err) {
+      console.error(`✗ 移除自启失败：${err instanceof Error ? err.message : String(err)}`);
+      return 1;
+    }
+  }
+
   let config;
   try {
     config = loadConfig(cli);
@@ -48,6 +69,19 @@ async function main(): Promise<number> {
     console.error(`✗ 配置不完整：${err instanceof Error ? err.message : String(err)}`);
     console.error('  提示：登录管理台 /admin 的"Connector 接入"区块，可以一键复制完整命令。');
     return 2;
+  }
+
+  // ---- 注册自启：写入当前平台的开机启动项后退出（不常驻、不自检） ----
+  if (cli.autostart) {
+    const plan = buildEnablePlan(config);
+    try {
+      applyPlan(plan);
+      console.log(`✓ ${plan.summary}`);
+      return 0;
+    } catch (err) {
+      console.error(`✗ 注册自启失败：${err instanceof Error ? err.message : String(err)}`);
+      return 1;
+    }
   }
 
   // ---- 自检 1/2：本地 kimi web ----
@@ -74,7 +108,7 @@ async function main(): Promise<number> {
   }
 
   console.log('\n✅ 自检通过，Connector 启动中。保持本进程运行即可远程访问；Ctrl+C 停止。');
-  console.log('   想开机自启/后台常驻，见文档：管理台"Connector 接入"区块或 packages/connector/README.md\n');
+  console.log('   需要开机自启的话，加 --autostart 跑一次即可注册（默认不自启）。\n');
 
   const handle = startConnector(config);
   const shutdown = () => {
