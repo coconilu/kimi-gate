@@ -3,7 +3,7 @@
  * 代理层直接把 HTTP / WebSocket 流量转发到本地上游，不经过 Connector 隧道。
  */
 import WebSocket from 'ws';
-import type { HeaderMap } from '@kimi-gate/shared';
+import type { HeaderMap } from 'kimi-gate-shared';
 import type { ProxiedResponse } from './tunnel.js';
 import type { Upstream } from './proxy.js';
 

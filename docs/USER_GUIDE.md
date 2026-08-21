@@ -89,32 +89,17 @@ sudo bash scripts/install.sh
 在你的域名 DNS 控制台加一条 **A 记录**：主机记录 `kimi`（或你喜欢的名字），值填云服务器 IP。
 然后配上 HTTPS（项目自带 Caddyfile，证书自动申请，不用手动操作）。
 
-### 第三步：家里电脑上装 Connector（约 5 分钟）
+### 第三步：家里电脑上装 Connector（约 2 分钟）
 
-在你家电脑上（需要 Node ≥ 22.5；pnpm 用 Node 自带的 corepack 启用即可）：
-
-```bash
-git clone https://github.com/<你的账号>/kimi-gate.git
-cd kimi-gate
-corepack enable          # 启用 pnpm（Node 自带，一次即可）
-pnpm install && pnpm run build
-```
-
-然后复制 `packages/connector/.env.example` 为 `packages/connector/.env`，填三行：
-
-```env
-GATEWAY_URL=wss://你的域名
-CONNECTOR_KEY=第一步安装时生成的配对密钥
-KIMI_LOCAL_URL=http://127.0.0.1:58627
-```
-
-启动：
+家里电脑装好 [Node.js](https://nodejs.org)（≥22.5）后，打开管理台 `https://你的域名/admin`，在**"Connector 接入"区块**复制那条为你生成好的命令，在家里电脑上运行：
 
 ```bash
-pnpm run start:connector
+npx kimi-gate-connector --gateway wss://你的域名 --key <配对密钥> --check
 ```
 
-看到 `已连接 gateway` 就说明链路通了。Windows 下想让它开机自启、后台常驻，方法见 [Connector 部署说明](../packages/connector/README.md)（任务计划程序或 NSSM，任选其一）。
+命令会**自动自检**：本地 kimi web 有没有在跑、服务器通不通、密钥对不对。全部通过会打印 `✅ 自检全部通过`，然后去掉 `--check` 再跑一次即为常驻模式。没通过也别慌——它会直接告诉你修哪里（比如"kimi web 没启动，先运行 `kimi web --port 58627`"）。
+
+不用克隆仓库、不用改配置文件。**电脑重启也不用重跑**——想开机自启，按 [Connector 部署说明](../packages/connector/README.md) 用任务计划程序或 NSSM 注册一次即可（命令同样是这条 npx）。
 
 ### 完成。日常使用就是：
 

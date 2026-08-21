@@ -46,10 +46,36 @@ export function loadConfig(overrides: Partial<ConnectorConfig> = {}): ConnectorC
   };
   cfg.gatewayUrl = cfg.gatewayUrl.replace(/\/+$/, '');
   cfg.targetUrl = cfg.targetUrl.replace(/\/+$/, '');
-  if (!cfg.gatewayUrl) throw new Error('missing GATEWAY_URL (see .env.example)');
-  if (!cfg.connectorKey) throw new Error('missing CONNECTOR_KEY (从 gateway 的 setup 输出中复制)');
+  if (!cfg.gatewayUrl) throw new Error('缺少 gateway 地址：用 --gateway wss://<域名> 指定（或在 .env 中设置 GATEWAY_URL）');
+  if (!cfg.connectorKey) throw new Error('缺少配对密钥：用 --key <密钥> 指定（管理台 /admin 的"Connector 接入"区块可复制完整命令）');
   if (!/^wss?:\/\//.test(cfg.gatewayUrl)) {
-    throw new Error(`GATEWAY_URL 必须以 ws:// 或 wss:// 开头: ${cfg.gatewayUrl}`);
+    throw new Error(`gateway 地址必须以 ws:// 或 wss:// 开头: ${cfg.gatewayUrl}`);
   }
   return cfg;
+}
+
+/**
+ * 解析命令行参数为配置覆盖项（优先级：CLI > 环境变量 > .env）。
+ * 独立导出以便测试；非法参数抛出带中文提示的 Error。
+ */
+export function parseCliArgs(argv: string[]): Partial<ConnectorConfig> & { check?: boolean; help?: boolean } {
+  const out: Partial<ConnectorConfig> & { check?: boolean; help?: boolean } = {};
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    const next = (): string => {
+      const v = argv[++i];
+      if (v === undefined || v.startsWith('--')) throw new Error(`参数 ${a} 缺少值`);
+      return v;
+    };
+    switch (a) {
+      case '--gateway': case '-g': out.gatewayUrl = next(); break;
+      case '--key': case '-k': out.connectorKey = next(); break;
+      case '--target': case '-t': out.targetUrl = next(); break;
+      case '--check': out.check = true; break;
+      case '--help': case '-h': out.help = true; break;
+      default:
+        throw new Error(`未知参数: ${a}（用 --help 查看用法）`);
+    }
+  }
+  return out;
 }

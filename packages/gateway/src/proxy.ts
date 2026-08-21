@@ -7,7 +7,7 @@
 import type { Request, Response } from 'express';
 import type { IncomingMessage } from 'node:http';
 import type { WebSocket } from 'ws';
-import type { HeaderMap } from '@kimi-gate/shared';
+import type { HeaderMap } from 'kimi-gate-shared';
 import type { ProxiedResponse } from './tunnel.js';
 
 /** 上游抽象：TunnelHub（路线 B）与 LocalUpstream（路线 A）共用同一接口。 */

@@ -300,8 +300,11 @@ test('管理台：未二次确认时 API 返回 403，确认后可查登录日�
   assert.ok(rows.some((r) => r.result === 'bad_password'), '日志中应有失败登录记录');
 
   const status = await fetchGw('/admin/api/status');
-  const s = await status.json() as { tunnelOnline: boolean };
+  const s = await status.json() as { tunnelOnline: boolean; connectorKey?: string; connectorCommand?: string };
   assert.equal(s.tunnelOnline, true);
+  // 管理台应向管理员展示配对密钥与即拷即用的 npx 接入命令
+  assert.equal(s.connectorKey, 'test-connector-key');
+  assert.match(s.connectorCommand!, /^npx kimi-gate-connector --gateway wss:\/\/.+ --key test-connector-key$/);
 });
 
 // 放在管理台测试之后：会改密码并清空会话，结尾改回原密码

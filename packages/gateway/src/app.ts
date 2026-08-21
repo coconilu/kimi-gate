@@ -283,14 +283,20 @@ export function createGateway(config: GatewayConfig): Gateway {
     res.json({ removed: Number(r.changes) > 0 });
   });
 
-  adminApi.get('/status', (_req, res) => {
+  adminApi.get('/status', (req, res) => {
     const s = upstream.stats;
+    // 管理台已要求二次密码确认，向管理员本人展示配对密钥与即拷即用的接入命令
+    const host = req.get('host') ?? '<你的域名>';
     res.json({
       upstreamMode: config.upstreamMode,
       tunnelOnline: s.online,
       connectorRttMs: s.rttMs,
       pendingHttp: s.pendingHttp,
       activeWs: s.activeWs,
+      ...(isTunnel ? {
+        connectorKey: config.connectorKey,
+        connectorCommand: `npx kimi-gate-connector --gateway wss://${host} --key ${config.connectorKey}`,
+      } : {}),
     });
   });
 

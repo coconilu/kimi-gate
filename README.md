@@ -96,7 +96,19 @@ sudo bash scripts/install.sh        # 检测 Node → pnpm install → build →
 `install.sh` 会生成并启用 `kimi-gate-gateway.service`（模板见 `scripts/kimi-gate-gateway.service`）。
 Gateway 本身监听 HTTP，请在前面配 TLS 反代（仓库自带 `Caddyfile`，或你自己的 Nginx/Caddy）。
 
-### Connector（路线 B 专用，家里 Windows PC）
+### Connector（路线 B 专用，家里电脑）
+
+**一行命令接入（推荐）**：家里电脑装好 Node.js（≥22.5）后，登录管理台 `https://<域名>/admin`，在"Connector 接入"区块复制完整命令运行即可，无需克隆仓库：
+
+```bash
+npx kimi-gate-connector --gateway wss://<域名> --key <配对密钥>
+```
+
+命令启动前会自动自检：本地 kimi web 是否在跑（没在跑会提示你启动，非默认端口会提示用 `--target` 指定）、Gateway 是否可达、配对密钥是否正确。全部通过才进入常驻；加 `--check` 只自检不常驻，适合部署后验证。
+
+**常驻/开机自启**（重启后不用重跑）：Windows 任务计划程序 / NSSM，Linux/macOS systemd user unit，命令都用上面这条 npx。详见 [packages/connector/README.md](packages/connector/README.md)。
+
+**从源码运行**（开发/二开）：
 
 ```powershell
 git clone <repo> kimi-gate && cd kimi-gate
@@ -104,13 +116,11 @@ pnpm install && pnpm run build
 
 # 写配置：复制 packages/connector/.env.example 为 packages/connector/.env，填三项：
 #   GATEWAY_URL=wss://gate.example.com
-#   CONNECTOR_KEY=<gateway 服务器上 pnpm run setup 输出的配对密钥>
+#   CONNECTOR_KEY=<管理台"Connector 接入"区块可见>
 #   KIMI_LOCAL_URL=http://127.0.0.1:58627
 cd packages/connector
 pnpm run start
 ```
-
-Connector 详细说明（含 **Windows 下用 NSSM / 任务计划程序注册为服务**）见 [packages/connector/README.md](packages/connector/README.md)。
 
 ### 使用
 

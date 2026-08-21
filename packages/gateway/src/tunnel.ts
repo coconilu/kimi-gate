@@ -7,7 +7,7 @@ import type { WebSocket } from 'ws';
 import {
   decodeFrame, encodeFrame, newId, PROTOCOL_VERSION,
   type Frame, type HeaderMap,
-} from '@kimi-gate/shared';
+} from 'kimi-gate-shared';
 
 export interface ProxiedResponse {
   status: number;

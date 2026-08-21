@@ -1,6 +1,7 @@
 {
-  "name": "@kimi-gate/gateway",
+  "name": "kimi-gate-gateway",
   "version": "0.1.0",
+  "private": true,
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
@@ -11,7 +12,7 @@
     "setup": "tsx scripts/setup.ts"
   },
   "dependencies": {
-    "@kimi-gate/shared": "workspace:*",
+    "kimi-gate-shared": "workspace:*",
     "express": "^4.21.2",
     "ws": "^8.18.0"
   }

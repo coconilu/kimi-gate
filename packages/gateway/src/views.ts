@@ -139,6 +139,15 @@ export function adminDashboardPage(opts: { csrf: string }): string {
     </div>
     <div id="pw-msg" style="font-size:12.5px;color:#9aa0aa">修改成功后，其他所有设备的登录会话会立即全部下线（本设备保持登录）。</div>
   </section>
+  <section id="connector-section" style="display:none">
+    <h2>Connector 接入（家里电脑）</h2>
+    <div style="font-size:12.5px;color:#9aa0aa;margin-bottom:10px">在家里电脑上安装 Node.js（≥22.5）后，复制下面这条命令运行即可接入，无需克隆仓库；自带连通性自检。配对密钥包含在命令中，请勿泄露。</div>
+    <div class="row">
+      <input id="connector-cmd" readonly style="flex:1;font-family:ui-monospace,monospace">
+      <button onclick="copyConnectorCmd()">复制</button>
+    </div>
+    <div style="font-size:12.5px;color:#9aa0aa">先加 <code>--check</code> 可只自检不常驻；常驻/开机自启方法见仓库 packages/connector/README.md。</div>
+  </section>
 </main>
 <script>
 const csrf = document.querySelector('meta[name="csrf-token"]').content;
@@ -158,6 +167,19 @@ async function loadStatus() {
   }
   el.textContent = s.tunnelOnline ? '隧道: 在线 (' + s.connectorRttMs + 'ms)' : '隧道: 离线';
   el.className = 'pill ' + (s.tunnelOnline ? 'on' : 'off');
+  if (s.connectorCommand) {
+    document.getElementById('connector-section').style.display = '';
+    document.getElementById('connector-cmd').value = s.connectorCommand;
+  }
+}
+async function copyConnectorCmd() {
+  const el = document.getElementById('connector-cmd');
+  el.select();
+  try {
+    await navigator.clipboard.writeText(el.value);
+  } catch {
+    document.execCommand('copy');
+  }
 }
 async function loadLogs() {
   const p = new URLSearchParams();

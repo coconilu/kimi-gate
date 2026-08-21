@@ -121,26 +121,20 @@ kimi.example.com {
 
 ## 阶段 5：家里电脑装 Connector（路线 B，你执行）
 
-在用户家里/办公室那台**会一直开机**的电脑上：
+在用户家里/办公室那台**会一直开机**的电脑上（只需 Node.js ≥ 22.5，无需克隆仓库）：
 
 ```bash
-git clone https://github.com/<owner>/kimi-gate.git
-cd kimi-gate
-corepack enable
-pnpm install && pnpm run build
+# 1. 确保 kimi web 常驻
+kimi web --port 58627 --no-open
+
+# 2. 一键接入（先自检，后常驻）。完整命令可在管理台 /admin 的"Connector 接入"区块复制
+npx kimi-gate-connector --gateway wss://kimi.example.com --key <CONNECTOR_KEY> --check
+# 自检全过后去掉 --check 常驻运行
 ```
 
-写 `packages/connector/.env`：
+自检会自动区分：kimi web 没启动 / 非默认端口（提示 `--target`）/ 服务器不可达 / 密钥错误，按输出引导修复即可。
 
-```env
-GATEWAY_URL=wss://kimi.example.com
-CONNECTOR_KEY=<阶段 3 向导输出的配对密钥>
-KIMI_LOCAL_URL=http://127.0.0.1:58627
-```
-
-同时确保 kimi web 常驻：`kimi web --port 58627 --no-open`。
-
-**常驻方案（Windows）**：用任务计划程序 + VBS 隐藏启动（仓库 `packages/connector/README.md` 有完整方法），真实部署注册了两个任务：`KimiGateWeb`（kimi web）和 `KimiGateConnector`。Linux/macOS 用 systemd user unit 或 pm2。日志重定向到文件（如 `%USERPROFILE%\.kimi-gate\logs\connector.log`），排查全靠它。
+**常驻方案（注册一次，重启自动运行，不需要用户每次手动跑）**：Windows 用任务计划程序 + VBS 隐藏启动或 NSSM（`packages/connector/README.md` 有完整命令），真实部署注册了两个任务：`KimiGateWeb`（kimi web）和 `KimiGateConnector`，命令都用这条 npx；日志重定向到文件（如 `%USERPROFILE%\.kimi-gate\logs\connector.log`），排查全靠它。Linux/macOS 用 systemd user unit 或 pm2。
 
 验证：日志出现 `已连接 gateway: wss://...`；管理台 `https://kimi.example.com/admin` 顶部显示"隧道： 在线"。
 

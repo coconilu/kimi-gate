@@ -26,7 +26,7 @@ importers:
 
   packages/connector:
     dependencies:
-      '@kimi-gate/shared':
+      kimi-gate-shared:
         specifier: workspace:*
         version: link:../shared
       ws:
@@ -35,12 +35,12 @@ importers:
 
   packages/gateway:
     dependencies:
-      '@kimi-gate/shared':
-        specifier: workspace:*
-        version: link:../shared
       express:
         specifier: ^4.21.2
         version: 4.22.2
+      kimi-gate-shared:
+        specifier: workspace:*
+        version: link:../shared
       ws:
         specifier: ^8.18.0
         version: 8.21.3

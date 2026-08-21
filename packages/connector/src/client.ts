@@ -7,7 +7,7 @@ import WebSocket from 'ws';
 import {
   decodeFrame, encodeFrame, PROTOCOL_VERSION,
   type Frame, type HeaderMap, type HttpReqFrame, type WsOpenFrame,
-} from '@kimi-gate/shared';
+} from 'kimi-gate-shared';
 import type { ConnectorConfig } from './config.js';
 
 const HOP_BY_HOP = new Set([

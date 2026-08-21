@@ -1,10 +1,21 @@
 {
-  "name": "@kimi-gate/shared",
+  "name": "kimi-gate-shared",
   "version": "0.1.0",
   "license": "MIT",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/coconilu/kimi-gate.git",
+    "directory": "packages/shared"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22.5"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
