@@ -5,6 +5,7 @@
 [![npm](https://img.shields.io/npm/v/kimi-gate-connector?label=kimi-gate-connector)](https://www.npmjs.com/package/kimi-gate-connector)
 [![ci](https://github.com/coconilu/kimi-gate/actions/workflows/ci.yml/badge.svg)](https://github.com/coconilu/kimi-gate/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![homepage](https://img.shields.io/badge/home-coconilu.github.io%2Fkimi--gate-4f8cff)](https://coconilu.github.io/kimi-gate/)
 
 > 📖 **只想快速用起来？** 看 [用户指南](docs/USER_GUIDE.md)——架构图、15 分钟上手、安全问答、故障排查，不需要技术背景。
 
