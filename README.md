@@ -44,6 +44,16 @@
 
 ## 快速开始
 
+不用看文档，也不用懂部署——把下面这段话发给你的 AI 编程助手（Kimi Code / Claude Code / Cursor 等），它会全程引导你完成，包括帮你选服务器、生成密码、配域名解析，直到你能用手机登录：
+
+> 请阅读 https://github.com/coconilu/kimi-gate/blob/main/docs/AGENT_PLAYBOOK.md ，然后全程引导我完成 kimi-gate 的部署。我手上有一台会一直开机的电脑（装着 Kimi Code CLI），其他都还没有。请一步一步来，每个阶段告诉我该做什么。
+
+Agent 会按 [docs/AGENT_PLAYBOOK.md](docs/AGENT_PLAYBOOK.md)（部署操作手册，含过程总览表和真实踩坑记录）执行：选购建议 → 买服务器 → 域名解析 → 装 Gateway → HTTPS → 装 Connector → 验收 → 安全收尾。你只需要做选择题和点确认。
+
+想自己手动部署？往下看。
+
+## 手动部署
+
 `pnpm run setup` 初始化向导会让你选择上游模式（A = 同机直连，B = 隧道），也可事后改 `.env` 里的 `UPSTREAM_MODE`。
 
 ### 路线 A：同机直连（kimi web 与 Gateway 同机）
