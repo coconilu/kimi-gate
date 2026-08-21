@@ -1,0 +1,23 @@
+# DOMAIN 由环境变量注入（docker-compose 中设置），Caddy 自动签发 Let's Encrypt 证书。
+# 如需指定 ACME 邮箱，设置 ACME_EMAIL 环境变量。
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# WebSocket 与长连接友好：不缓冲代理响应
+	reverse_proxy gateway:3000 {
+		flush_interval -1
+	}
+
+	header {
+		# 安全响应头（gateway 自身也会设置，这里兜底）
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		-Server
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

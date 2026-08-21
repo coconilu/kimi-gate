@@ -1,0 +1,32 @@
+{
+  "name": "kimi-gate",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Self-hosted secure gateway for remote access to a local Kimi Code CLI `kimi web` instance.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.5"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:gateway": "tsx watch packages/gateway/src/index.ts",
+    "dev:connector": "tsx watch packages/connector/src/index.ts",
+    "setup": "tsx packages/gateway/scripts/setup.ts",
+    "build": "npm run build -w @kimi-gate/shared && npm run build -w @kimi-gate/gateway && npm run build -w @kimi-gate/connector",
+    "test": "npm run build -w @kimi-gate/shared && node --import tsx --test \"packages/gateway/tests/*.test.ts\" \"packages/connector/tests/*.test.ts\"",
+    "smoke": "node scripts/smoke.mjs",
+    "start:gateway": "node packages/gateway/dist/index.js",
+    "start:connector": "node packages/connector/dist/index.js",
+    "clean": "node scripts/clean.mjs"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^24.0.0",
+    "@types/ws": "^8.5.10",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.0"
+  }
+}

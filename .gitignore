@@ -1,0 +1,25 @@
+node_modules/
+dist/
+*.tsbuildinfo
+
+# secrets & local config — never commit
+.env
+.env.*
+!.env.example
+*.local.json
+
+# runtime data
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+data/
+
+# logs
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

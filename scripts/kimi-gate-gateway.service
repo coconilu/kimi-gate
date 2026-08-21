@@ -1,0 +1,21 @@
+[Unit]
+Description=kimi-gate gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# 修改为实际部署用户与路径
+User=deploy
+WorkingDirectory=/opt/kimi-gate
+ExecStart=/usr/bin/node /opt/kimi-gate/packages/gateway/dist/index.js
+Restart=always
+RestartSec=3
+Environment=NODE_ENV=production
+Environment=GATEWAY_CONFIG=/opt/kimi-gate/.env
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
