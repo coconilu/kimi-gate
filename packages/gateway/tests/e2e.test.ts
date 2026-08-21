@@ -303,3 +303,14 @@ test('管理台：未二次确认时 API 返回 403，确认后可查登录日�
   const s = await status.json() as { tunnelOnline: boolean };
   assert.equal(s.tunnelOnline, true);
 });
+
+// 放在最后：会打断隧道连接，依赖 connector 自动重连恢复
+test('connector 在 gateway 主动断开后自动重连', async () => {
+  assert.ok(gw.hub, 'tunnel 模式应有 hub');
+  assert.equal(gw.hub.online, true);
+  // 模拟 gateway 重启/断线：主动关闭当前隧道连接
+  gw.hub.close();
+  await waitFor(() => gw.hub!.online === false);
+  // connector 应在指数退避后自行重连（首次退避约 0.5–1s）
+  await waitFor(() => gw.hub!.online === true, 15000);
+});

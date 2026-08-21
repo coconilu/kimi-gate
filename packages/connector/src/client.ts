@@ -27,6 +27,7 @@ export function startConnector(config: ConnectorConfig): ConnectorHandle {
   let stopped = false;
   let attempts = 0;
   let heartbeat: NodeJS.Timeout | null = null;
+  let reconnectTimer: NodeJS.Timeout | null = null;
   let lastSeen = 0;
   const localWs = new Map<string, WebSocket>();
   const pendingWs = new Map<string, Array<{ data: string; binary: boolean }>>();
@@ -210,7 +211,9 @@ export function startConnector(config: ConnectorConfig): ConnectorHandle {
       const base = Math.min(30000, 1000 * 2 ** Math.min(attempts - 1, 5));
       const delay = Math.round(base * (0.5 + Math.random() * 0.5));
       config.log(`${Math.round(delay / 1000)} 秒后重连…`);
-      setTimeout(connect, delay).unref();
+      // 注意：不能 unref——ws 关闭后它是事件循环里仅存的句柄，
+      // unref 会让进程在重连触发前静默退出。
+      reconnectTimer = setTimeout(connect, delay);
     });
   }
 
@@ -220,6 +223,7 @@ export function startConnector(config: ConnectorConfig): ConnectorHandle {
     close: () => {
       stopped = true;
       if (heartbeat) { clearInterval(heartbeat); heartbeat = null; }
+      if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
       cleanupLocal();
       if (ws) {
         try { ws.close(1000, 'connector shutdown'); } catch { /* ignore */ }
