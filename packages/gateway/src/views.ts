@@ -108,6 +108,7 @@ export function adminDashboardPage(opts: { csrf: string }): string {
         <option value="rate_limited">被限流</option>
         <option value="banned">被封禁</option>
         <option value="bad_csrf">CSRF 拒绝</option>
+        <option value="password_changed">修改密码</option>
       </select>
       <input id="f-ip" placeholder="按 IP 筛选">
       <button onclick="loadLogs()">查询</button>
@@ -127,6 +128,16 @@ export function adminDashboardPage(opts: { csrf: string }): string {
       <button onclick="addBan()">封禁</button>
     </div>
     <table><thead><tr><th>IP</th><th>时间</th><th>原因</th><th></th></tr></thead><tbody id="bans"></tbody></table>
+  </section>
+  <section>
+    <h2>修改密码</h2>
+    <div class="row">
+      <input id="pw-current" type="password" placeholder="当前密码" autocomplete="off">
+      <input id="pw-new" type="password" placeholder="新密码（至少 10 位）" autocomplete="new-password">
+      <input id="pw-new2" type="password" placeholder="重复新密码" autocomplete="new-password">
+      <button onclick="changePassword()">修改</button>
+    </div>
+    <div id="pw-msg" style="font-size:12.5px;color:#9aa0aa">修改成功后，其他所有设备的登录会话会立即全部下线（本设备保持登录）。</div>
   </section>
 </main>
 <script>
@@ -184,6 +195,31 @@ async function addBan() {
 async function unban(ip) {
   await api('/admin/api/bans/' + encodeURIComponent(ip), { method: 'DELETE' });
   loadBans();
+}
+async function changePassword() {
+  const msg = document.getElementById('pw-msg');
+  const currentPassword = document.getElementById('pw-current').value;
+  const newPassword = document.getElementById('pw-new').value;
+  const new2 = document.getElementById('pw-new2').value;
+  if (newPassword !== new2) {
+    msg.textContent = '两次输入的新密码不一致';
+    msg.style.color = '#ff9a9a';
+    return;
+  }
+  try {
+    await api('/admin/api/password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) });
+    msg.textContent = '密码已修改，其他所有设备的会话已全部下线。';
+    msg.style.color = '#7ee2a0';
+    document.getElementById('pw-current').value = '';
+    document.getElementById('pw-new').value = '';
+    document.getElementById('pw-new2').value = '';
+    loadSessions();
+  } catch (e) {
+    let detail = '';
+    try { detail = JSON.parse(e.message).error || ''; } catch { detail = e.message; }
+    msg.textContent = '修改失败：' + detail;
+    msg.style.color = '#ff9a9a';
+  }
 }
 function refresh() { loadStatus(); loadLogs(); loadSessions(); loadBans(); }
 refresh();

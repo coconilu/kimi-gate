@@ -6,7 +6,8 @@ export type LoginResult =
   | 'bad_totp'
   | 'rate_limited'
   | 'banned'
-  | 'bad_csrf';
+  | 'bad_csrf'
+  | 'password_changed';
 
 export interface LoginAttempt {
   id: number;

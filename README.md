@@ -34,7 +34,7 @@
 - 会话：SQLite 会话表 + HttpOnly/SameSite 签名 Cookie
 - 登录限流：按设备指纹（IP + User-Agent）滑动窗口 10 次/分钟，超限 429，窗口数据落库、重启不丢
 - 登录审计：所有尝试（成功/密码错误/TOTP 错误/被限流/被封禁/CSRF 拒绝）写入 `login_attempts` 表
-- 管理台 `/admin`（进入需再次输入密码）：登录日志查询/筛选/导出 CSV、活跃会话列表与踢下线、IP 封禁/解封、隧道在线状态
+- 管理台 `/admin`（进入需再次输入密码）：登录日志查询/筛选/导出 CSV、活跃会话列表与踢下线、IP 封禁/解封、隧道在线状态、修改管理员密码（改密成功后其他所有设备会话立即下线，本设备保持登录）
 - 隧道：自研 WSS 多路复用协议，同时支持 HTTP 请求/响应代理与 WebSocket 升级中继（kimi 聊天流是 WebSocket）
 - 双上游模式：`tunnel`（Connector 隧道）/ `local`（同机直连），认证、注入、审计、管理台行为完全一致
 - Connector：指数退避自动重连、心跳保活、HTTP + WS 转发本地 kimi web
@@ -128,7 +128,7 @@ pnpm run dev:connector
 | `HOST` | 否 | `0.0.0.0` | 监听地址 |
 | `DB_PATH` | 否 | `./kimi-gate.db` | SQLite 数据库文件路径 |
 | `SESSION_SECRET` | 是 | — | 会话 Cookie 签名密钥（setup 自动生成） |
-| `ADMIN_PASSWORD_HASH` | 是 | — | 管理员密码哈希（setup 生成，argon2id/scrypt） |
+| `ADMIN_PASSWORD_HASH` | 是 | — | 管理员密码哈希（setup 生成，argon2id/scrypt）。初始/找回用；管理台改密后新哈希存 SQLite `settings` 表并优先于此值 |
 | `KIMI_BEARER_TOKEN` | 是 | — | kimi web 的 bearer token（仅存于此） |
 | `UPSTREAM_MODE` | 否 | `tunnel` | 上游模式：`tunnel`（Connector 隧道）/ `local`（同机直连） |
 | `LOCAL_UPSTREAM` | local 模式必填 | `http://127.0.0.1:58627` | `UPSTREAM_MODE=local` 时的本地上游地址 |

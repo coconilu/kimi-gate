@@ -304,6 +304,75 @@ test('管理台：未二次确认时 API 返回 403，确认后可查登录日�
   assert.equal(s.tunnelOnline, true);
 });
 
+// 放在管理台测试之后：会改密码并清空会话，结尾改回原密码
+test('修改密码：校验、踢全部会话、新密码生效', async () => {
+  const NEW_PASSWORD = 'new-password-12345';
+  // dashboard 的 <meta name="csrf-token">（管理台 JSON API 用 header 校验）
+  const adminCsrf = async (): Promise<string> => {
+    const html = await (await fetchGw('/admin')).text();
+    const m = /name="csrf-token" content="([^"]+)"/.exec(html);
+    assert.ok(m, 'dashboard should embed csrf meta');
+    return m[1];
+  };
+  const postPassword = async (body: Record<string, string>) =>
+    fetchGw('/admin/api/password', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-csrf-token': await adminCsrf() },
+      body: JSON.stringify(body),
+    });
+  // 不经过 cookie jar 的独立登录（模拟"另一台设备"），避免污染当前会话。
+  // 无 kg_csrf cookie 时签名 token 单独即可通过 csrfOk。
+  const rawLogin = async (password: string): Promise<Response> =>
+    fetch(`http://127.0.0.1:${gwPort}/login`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ csrf: issueCsrf('test-session-secret'), password }),
+      redirect: 'manual',
+    });
+
+  // 先造一个"另一台设备"的会话
+  const otherSession = await rawLogin(ADMIN_PASSWORD);
+  assert.equal(otherSession.status, 302);
+  const otherCookie = otherSession.headers.getSetCookie()
+    .find((c) => c.startsWith('kg_session='))!;
+  const sessionsBefore = await (await fetchGw('/admin/api/sessions')).json() as unknown[];
+  assert.ok(sessionsBefore.length >= 2, '修改前应有多个会话');
+
+  // 当前密码错误 → 401
+  const wrong = await postPassword({ currentPassword: 'wrong', newPassword: NEW_PASSWORD });
+  assert.equal(wrong.status, 401);
+  // 新密码太短 → 400
+  const weak = await postPassword({ currentPassword: ADMIN_PASSWORD, newPassword: 'short' });
+  assert.equal(weak.status, 400);
+
+  // 正确修改 → 200，且本设备保持登录（接口签发新会话 cookie）
+  const ok = await postPassword({ currentPassword: ADMIN_PASSWORD, newPassword: NEW_PASSWORD });
+  assert.equal(ok.status, 200);
+  const stillAdmin = await fetchGw('/admin/api/status');
+  assert.equal(stillAdmin.status, 200, '修改后当前设备应保持管理台会话');
+
+  // 旧会话（"另一台设备"）已被踢下线
+  const kicked = await fetch(`http://127.0.0.1:${gwPort}/api/hello`, {
+    headers: { cookie: otherCookie.split(';')[0], accept: 'application/json' },
+    redirect: 'manual',
+  });
+  assert.equal(kicked.status, 401);
+
+  // 旧密码登录失败，新密码登录成功；审计写入 password_changed
+  const oldLogin = await rawLogin(ADMIN_PASSWORD);
+  assert.equal(oldLogin.status, 401);
+  const newLogin = await rawLogin(NEW_PASSWORD);
+  assert.equal(newLogin.status, 302);
+  const rows = gw.db.prepare("SELECT result FROM login_attempts WHERE result = 'password_changed'").all();
+  assert.ok(rows.length >= 1, '应写入 password_changed 审计记录');
+
+  // 改回原密码（/password 签发的会话已带 admin_ok，无需再次确认）
+  const back = await postPassword({ currentPassword: NEW_PASSWORD, newPassword: ADMIN_PASSWORD });
+  assert.equal(back.status, 200);
+  const relogin = await rawLogin(ADMIN_PASSWORD);
+  assert.equal(relogin.status, 302);
+});
+
 // 放在最后：会打断隧道连接，依赖 connector 自动重连恢复
 test('connector 在 gateway 主动断开后自动重连', async () => {
   assert.ok(gw.hub, 'tunnel 模式应有 hub');

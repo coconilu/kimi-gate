@@ -45,6 +45,12 @@ export function openDb(path: string): Db {
       created_at INTEGER NOT NULL,
       reason     TEXT NOT NULL DEFAULT ''
     );
+
+    -- 运行期可变配置（如管理台改密后的密码哈希，优先于 .env）
+    CREATE TABLE IF NOT EXISTS settings (
+      key   TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
   `);
   return db;
 }

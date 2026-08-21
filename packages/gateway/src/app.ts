@@ -6,7 +6,7 @@ import { openDb, type Db } from './db.js';
 import { TunnelHub } from './tunnel.js';
 import { LocalUpstream } from './local.js';
 import { httpProxyMiddleware, relayBrowserWs, type Upstream } from './proxy.js';
-import { verifyPassword } from './password.js';
+import { verifyPassword, hashPassword } from './password.js';
 import { verifyTotp } from './totp.js';
 import { RateLimiter } from './ratelimit.js';
 import { recordAttempt, queryAttempts, attemptsToCsv } from './audit.js';
@@ -40,6 +40,14 @@ export function createGateway(config: GatewayConfig): Gateway {
     : null;
   const upstream: Upstream = hub ?? new LocalUpstream(config.localUpstream, config.tunnelTimeoutMs);
   const loginLimiter = new RateLimiter(db, { limit: 10, windowMs: 60_000 });
+
+  // 管理员密码哈希解析：管理台改密后存进 settings 表并优先于 .env 的初始
+  // 哈希（.env 仍作为首次部署/找回密码的引导值）。
+  const adminPasswordHash = (): string => {
+    const row = db.prepare("SELECT value FROM settings WHERE key = 'admin_password_hash'").get() as
+      { value: string } | undefined;
+    return row?.value ?? config.adminPasswordHash;
+  };
 
   const app = express();
   app.disable('x-powered-by');
@@ -169,7 +177,7 @@ export function createGateway(config: GatewayConfig): Gateway {
 
     const body = req.body as { password?: string; totp?: string };
     const passwordOk = typeof body.password === 'string' &&
-      await verifyPassword(body.password, config.adminPasswordHash);
+      await verifyPassword(body.password, adminPasswordHash());
     if (!passwordOk) {
       return fail('bad_password', 'wrong password', 401, '密码错误');
     }
@@ -213,7 +221,7 @@ export function createGateway(config: GatewayConfig): Gateway {
     }
     const body = req.body as { password?: string };
     const ok = typeof body.password === 'string' &&
-      await verifyPassword(body.password, config.adminPasswordHash);
+      await verifyPassword(body.password, adminPasswordHash());
     if (!ok) return renderError('密码错误');
     markAdminVerified(db, req.session!.id);
     res.redirect(302, '/admin');
@@ -284,6 +292,37 @@ export function createGateway(config: GatewayConfig): Gateway {
       pendingHttp: s.pendingHttp,
       activeWs: s.activeWs,
     });
+  });
+
+  // 修改管理员密码。止损语义：验证当前密码 → 写入新哈希（DB 优先于 .env）
+  // → 删除全部既有会话（所有设备立即下线）→ 为当前设备签发新会话保持登录。
+  // 注意：已建立的浏览器 WebSocket 不做强制断开，自然存活到连接关闭。
+  adminApi.post('/password', async (req, res) => {
+    const { currentPassword, newPassword } = req.body as {
+      currentPassword?: string; newPassword?: string;
+    };
+    if (typeof currentPassword !== 'string' || typeof newPassword !== 'string' || !currentPassword || !newPassword) {
+      res.status(400).json({ error: '当前密码与新密码必填' });
+      return;
+    }
+    if (newPassword.length < 10 || newPassword.length > 128) {
+      res.status(400).json({ error: '新密码长度需在 10–128 字符之间' });
+      return;
+    }
+    if (!await verifyPassword(currentPassword, adminPasswordHash())) {
+      res.status(401).json({ error: '当前密码错误' });
+      return;
+    }
+    const hash = await hashPassword(newPassword);
+    db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('admin_password_hash', ?)").run(hash);
+
+    db.prepare('DELETE FROM sessions').run();
+    const { ip, ua, device } = clientInfo(req);
+    const session = createSession(db, config.sessionSecret, ip, ua);
+    markAdminVerified(db, session.id);
+    recordAttempt(db, { ip, ua, device, result: 'password_changed' });
+    res.append('Set-Cookie', `${SESSION_COOKIE}=${encodeURIComponent(session.cookie)}; Path=/; HttpOnly; SameSite=Lax${secureFlag(req)}`);
+    res.json({ ok: true });
   });
 
   app.use('/admin/api', adminApi);
