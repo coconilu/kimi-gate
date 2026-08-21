@@ -76,7 +76,12 @@ export function adminDashboardPage(opts: { csrf: string }): string {
   .pill { font-size: 12px; padding: 4px 10px; border-radius: 999px; }
   .on { background: #17351f; color: #7ee2a0; }
   .off { background: #402225; color: #ff9a9a; }
-  main { padding: 22px; display: grid; gap: 22px; max-width: 1100px; margin: 0 auto; }
+  .layout { display: flex; gap: 22px; max-width: 1200px; margin: 0 auto; padding: 22px; align-items: flex-start; }
+  .side { width: 180px; flex-shrink: 0; background: #1a1d24; border-radius: 12px; padding: 8px; position: sticky; top: 22px; }
+  .side a { display: block; padding: 10px 12px; border-radius: 8px; color: #9aa0aa; font-size: 13px; cursor: pointer; text-decoration: none; }
+  .side a:hover { background: #232936; color: #e6e6e6; }
+  .side a.active { background: #2d3547; color: #fff; }
+  .content { flex: 1; min-width: 0; display: grid; gap: 22px; }
   section { background: #1a1d24; border-radius: 12px; padding: 18px; }
   h2 { font-size: 14px; margin: 0 0 12px; color: #9aa0aa; }
   table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
@@ -87,6 +92,11 @@ export function adminDashboardPage(opts: { csrf: string }): string {
   button:hover, a.btn:hover { background: #2d3547; }
   .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
   .danger { color: #ff9a9a; }
+  @media (max-width: 720px) {
+    .layout { flex-direction: column; padding: 14px; gap: 14px; }
+    .side { width: auto; display: flex; overflow-x: auto; position: static; padding: 6px; }
+    .side a { white-space: nowrap; }
+  }
 </style>
 </head>
 <body>
@@ -96,50 +106,15 @@ export function adminDashboardPage(opts: { csrf: string }): string {
   <a class="btn" href="/" target="_blank">打开应用</a>
   <a class="btn" href="/logout">退出登录</a>
 </header>
-<main>
-  <section>
-    <h2>登录日志</h2>
-    <div class="row">
-      <select id="f-result">
-        <option value="">全部结果</option>
-        <option value="success">成功</option>
-        <option value="bad_password">密码错误</option>
-        <option value="bad_totp">TOTP 错误</option>
-        <option value="rate_limited">被限流</option>
-        <option value="banned">被封禁</option>
-        <option value="bad_csrf">CSRF 拒绝</option>
-        <option value="password_changed">修改密码</option>
-      </select>
-      <input id="f-ip" placeholder="按 IP 筛选">
-      <button onclick="loadLogs()">查询</button>
-      <a class="btn" id="csv" href="/admin/api/logs.csv">导出 CSV</a>
-    </div>
-    <table><thead><tr><th>时间</th><th>IP</th><th>结果</th><th>原因</th><th>UA</th></tr></thead><tbody id="logs"></tbody></table>
-  </section>
-  <section>
-    <h2>活跃会话</h2>
-    <table><thead><tr><th>创建时间</th><th>IP</th><th>过期时间</th><th>UA</th><th></th></tr></thead><tbody id="sessions"></tbody></table>
-  </section>
-  <section>
-    <h2>IP 封禁</h2>
-    <div class="row">
-      <input id="ban-ip" placeholder="IP 地址">
-      <input id="ban-reason" placeholder="原因（可选）">
-      <button onclick="addBan()">封禁</button>
-    </div>
-    <table><thead><tr><th>IP</th><th>时间</th><th>原因</th><th></th></tr></thead><tbody id="bans"></tbody></table>
-  </section>
-  <section>
-    <h2>修改密码</h2>
-    <div class="row">
-      <input id="pw-current" type="password" placeholder="当前密码" autocomplete="off">
-      <input id="pw-new" type="password" placeholder="新密码（至少 10 位）" autocomplete="new-password">
-      <input id="pw-new2" type="password" placeholder="重复新密码" autocomplete="new-password">
-      <button onclick="changePassword()">修改</button>
-    </div>
-    <div id="pw-msg" style="font-size:12.5px;color:#9aa0aa">修改成功后，其他所有设备的登录会话会立即全部下线（本设备保持登录）。</div>
-  </section>
-  <section id="connector-section" style="display:none">
+<div class="layout">
+  <nav class="side">
+    <a data-panel="connector" id="nav-connector" style="display:none" onclick="showPanel('connector')">Connector 接入</a>
+    <a data-panel="password" onclick="showPanel('password')">修改密码</a>
+    <a data-panel="sessions" onclick="showPanel('sessions')">活跃会话</a>
+    <a data-panel="logs" onclick="showPanel('logs')">日志与封禁</a>
+  </nav>
+  <main class="content">
+  <section class="panel" id="panel-connector" style="display:none">
     <h2>Connector 接入（家里电脑）</h2>
     <div style="font-size:12.5px;color:#9aa0aa;margin-bottom:10px">在家里电脑上安装 Node.js（≥22.5）后，复制下面的命令运行即可接入，无需克隆仓库；自带连通性自检，成功后会打印访问地址。配对密钥包含在命令中，请勿泄露。</div>
     <label style="display:flex;align-items:center;gap:6px;font-size:13px;margin-bottom:10px;cursor:pointer">
@@ -160,7 +135,48 @@ export function adminDashboardPage(opts: { csrf: string }): string {
     </div>
     <div id="connector-stop-hint" style="font-size:12.5px;color:#9aa0aa;margin-top:10px">未开启自启时，在运行命令的窗口按 Ctrl+C 即可停止。先加 <code>--check</code> 可只自检不常驻，适合部署后验证。</div>
   </section>
-</main>
+  <section class="panel" id="panel-password" style="display:none">
+    <h2>修改密码</h2>
+    <div class="row">
+      <input id="pw-current" type="password" placeholder="当前密码" autocomplete="off">
+      <input id="pw-new" type="password" placeholder="新密码（至少 10 位）" autocomplete="new-password">
+      <input id="pw-new2" type="password" placeholder="重复新密码" autocomplete="new-password">
+      <button onclick="changePassword()">修改</button>
+    </div>
+    <div id="pw-msg" style="font-size:12.5px;color:#9aa0aa">修改成功后，其他所有设备的登录会话会立即全部下线（本设备保持登录）。</div>
+  </section>
+  <section class="panel" id="panel-sessions" style="display:none">
+    <h2>活跃会话</h2>
+    <table><thead><tr><th>创建时间</th><th>IP</th><th>过期时间</th><th>UA</th><th></th></tr></thead><tbody id="sessions"></tbody></table>
+  </section>
+  <section class="panel" id="panel-logs" style="display:none">
+    <h2>登录日志</h2>
+    <div class="row">
+      <select id="f-result">
+        <option value="">全部结果</option>
+        <option value="success">成功</option>
+        <option value="bad_password">密码错误</option>
+        <option value="bad_totp">TOTP 错误</option>
+        <option value="rate_limited">被限流</option>
+        <option value="banned">被封禁</option>
+        <option value="bad_csrf">CSRF 拒绝</option>
+        <option value="password_changed">修改密码</option>
+      </select>
+      <input id="f-ip" placeholder="按 IP 筛选">
+      <button onclick="loadLogs()">查询</button>
+      <a class="btn" id="csv" href="/admin/api/logs.csv">导出 CSV</a>
+    </div>
+    <table><thead><tr><th>时间</th><th>IP</th><th>结果</th><th>原因</th><th>UA</th></tr></thead><tbody id="logs"></tbody></table>
+    <h2 style="margin-top:22px">IP 封禁</h2>
+    <div class="row">
+      <input id="ban-ip" placeholder="IP 地址">
+      <input id="ban-reason" placeholder="原因（可选）">
+      <button onclick="addBan()">封禁</button>
+    </div>
+    <table><thead><tr><th>IP</th><th>时间</th><th>原因</th><th></th></tr></thead><tbody id="bans"></tbody></table>
+  </section>
+  </main>
+</div>
 <script>
 const csrf = document.querySelector('meta[name="csrf-token"]').content;
 async function api(path, opts = {}) {
@@ -169,21 +185,30 @@ async function api(path, opts = {}) {
   return r.json();
 }
 const fmt = ts => new Date(ts).toLocaleString();
+let currentPanel = null;
+function showPanel(name) {
+  currentPanel = name;
+  document.querySelectorAll('.panel').forEach(p => { p.style.display = p.id === 'panel-' + name ? '' : 'none'; });
+  document.querySelectorAll('.side a').forEach(a => a.classList.toggle('active', a.dataset.panel === name));
+  if (name === 'logs') { loadLogs(); loadBans(); }
+  if (name === 'sessions') loadSessions();
+}
 async function loadStatus() {
   const s = await api('/admin/api/status');
   const el = document.getElementById('tunnel');
   if (s.upstreamMode === 'local') {
     el.textContent = '模式: 同机直连';
     el.className = 'pill on';
-    return;
+  } else {
+    el.textContent = s.tunnelOnline ? '隧道: 在线 (' + s.connectorRttMs + 'ms)' : '隧道: 离线';
+    el.className = 'pill ' + (s.tunnelOnline ? 'on' : 'off');
+    if (s.connectorCommand) {
+      document.getElementById('nav-connector').style.display = '';
+      connectorBaseCmd = s.connectorCommand;
+      renderConnectorCmds();
+    }
   }
-  el.textContent = s.tunnelOnline ? '隧道: 在线 (' + s.connectorRttMs + 'ms)' : '隧道: 离线';
-  el.className = 'pill ' + (s.tunnelOnline ? 'on' : 'off');
-  if (s.connectorCommand) {
-    document.getElementById('connector-section').style.display = '';
-    connectorBaseCmd = s.connectorCommand;
-    renderConnectorCmds();
-  }
+  if (!currentPanel) showPanel(s.connectorCommand ? 'connector' : 'password');
 }
 let connectorBaseCmd = '';
 function renderConnectorCmds() {
@@ -259,7 +284,6 @@ async function changePassword() {
     document.getElementById('pw-current').value = '';
     document.getElementById('pw-new').value = '';
     document.getElementById('pw-new2').value = '';
-    loadSessions();
   } catch (e) {
     let detail = '';
     try { detail = JSON.parse(e.message).error || ''; } catch { detail = e.message; }
@@ -267,8 +291,7 @@ async function changePassword() {
     msg.style.color = '#ff9a9a';
   }
 }
-function refresh() { loadStatus(); loadLogs(); loadSessions(); loadBans(); }
-refresh();
+loadStatus();
 setInterval(loadStatus, 10000);
 </script>
 </body>
