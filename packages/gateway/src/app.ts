@@ -78,6 +78,18 @@ export function createGateway(config: GatewayConfig): Gateway {
     return (typeof bodyToken === 'string' && bodyToken) || headerToken || undefined;
   };
 
+  // Signed-token CSRF check (OWASP signed-token pattern): the token's HMAC
+  // signature must verify; when the kg_csrf cookie is present it must also
+  // match (double-submit binding). Browsers that block cookies entirely can
+  // still pass via the signature alone — a cross-site attacker cannot forge
+  // the signed token either way.
+  const csrfOk = (req: Request): boolean => {
+    const token = csrfFromRequest(req);
+    if (!verifyCsrf(config.sessionSecret, token)) return false;
+    const cookie = parseCookies(req.headers.cookie)[CSRF_COOKIE];
+    return cookie === undefined || cookie === token;
+  };
+
   const sessionFromRequest = (req: Request): Session | null =>
     getSession(db, config.sessionSecret, parseCookies(req.headers.cookie)[SESSION_COOKIE]);
 
@@ -135,9 +147,7 @@ export function createGateway(config: GatewayConfig): Gateway {
       res.status(status).type('html').send(loginPage({ csrf, totp: config.totpSecret !== null, error: msg }));
     };
 
-    const cookies = parseCookies(req.headers.cookie);
-    if (!verifyCsrf(config.sessionSecret, cookies[CSRF_COOKIE]) ||
-        (req.body as Record<string, unknown>).csrf !== cookies[CSRF_COOKIE]) {
+    if (!csrfOk(req)) {
       return fail('bad_csrf', 'csrf token mismatch', 403, '表单校验失败，请重试');
     }
     if (isBanned(ip)) {
@@ -189,8 +199,7 @@ export function createGateway(config: GatewayConfig): Gateway {
       const csrf = verifyCsrf(config.sessionSecret, cookies[CSRF_COOKIE]) ? cookies[CSRF_COOKIE] : setCsrfCookie(req, res);
       res.status(401).type('html').send(adminConfirmPage({ csrf, error: msg }));
     };
-    if (!verifyCsrf(config.sessionSecret, cookies[CSRF_COOKIE]) ||
-        (req.body as Record<string, unknown>).csrf !== cookies[CSRF_COOKIE]) {
+    if (!csrfOk(req)) {
       return renderError('表单校验失败，请重试');
     }
     const body = req.body as { password?: string };

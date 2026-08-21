@@ -177,6 +177,40 @@ test('正确密码登录成功', async () => {
   assert.ok(jar.has('kg_session'), '应种下会话 cookie');
 });
 
+test('禁用 Cookie 的浏览器可凭签名 token 登录（csrf 兼容回退）', async () => {
+  const page = await fetchGw('/login', { headers: { cookie: '' } });
+  const csrf = extractCsrf(await page.text());
+  jar.delete('kg_csrf');
+  const res = await fetchGw('/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded', cookie: '' },
+    body: new URLSearchParams({ csrf, password: ADMIN_PASSWORD }),
+  });
+  assert.equal(res.status, 302, '签名 token 有效但无 cookie 时应允许登录');
+});
+
+test('cookie 与表单 token 不一致仍拒绝登录', async () => {
+  jar.delete('kg_session'); // 避免已登录状态被重定向到 /
+  const p1 = await fetchGw('/login');
+  const staleCsrf = extractCsrf(await p1.text());
+  await fetchGw('/login'); // 第二次 GET 轮换 kg_csrf cookie
+  const res = await fetchGw('/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ csrf: staleCsrf, password: ADMIN_PASSWORD }),
+  });
+  assert.equal(res.status, 403, 'cookie 已轮换、表单为旧 token 时应拒绝');
+  // 重新登录，恢复后续用例依赖的会话
+  const p2 = await fetchGw('/login');
+  const freshCsrf = extractCsrf(await p2.text());
+  const relogin = await fetchGw('/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ csrf: freshCsrf, password: ADMIN_PASSWORD }),
+  });
+  assert.equal(relogin.status, 302);
+});
+
 test('HTTP 流量经隧道到达 kimi 且注入 Authorization 头', async () => {
   const res = await fetchGw('/api/hello');
   assert.equal(res.status, 200);
