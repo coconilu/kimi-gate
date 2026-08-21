@@ -23,17 +23,19 @@ if [ "$NODE_VER" -lt 2205 ]; then
 fi
 echo "==> Node $(node -v) OK"
 
-# ---------- 2. 依赖与构建 ----------
+# ---------- 2. pnpm 与依赖构建 ----------
 cd "$APP_DIR"
-echo "==> npm ci"
-sudo -u "$RUN_USER" npm ci --no-audit --no-fund
-echo "==> npm run build"
-sudo -u "$RUN_USER" npm run build
+echo "==> corepack enable (pnpm)"
+sudo -u "$RUN_USER" corepack enable
+echo "==> pnpm install --frozen-lockfile"
+sudo -u "$RUN_USER" pnpm install --frozen-lockfile
+echo "==> pnpm run build"
+sudo -u "$RUN_USER" pnpm run build
 
 # ---------- 3. 初始化配置 ----------
 if [ ! -f "$APP_DIR/.env" ]; then
   echo "==> 首次部署，启动交互式初始化向导…"
-  sudo -u "$RUN_USER" npm run setup
+  sudo -u "$RUN_USER" pnpm run setup
 else
   echo "==> 已存在 .env，跳过初始化"
 fi

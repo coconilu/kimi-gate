@@ -89,12 +89,13 @@ sudo bash scripts/install.sh
 
 ### 第三步：家里电脑上装 Connector（约 5 分钟）
 
-在你家电脑上：
+在你家电脑上（需要 Node ≥ 22.5；pnpm 用 Node 自带的 corepack 启用即可）：
 
 ```bash
 git clone https://github.com/<你的账号>/kimi-gate.git
 cd kimi-gate
-npm install && npm run build
+corepack enable          # 启用 pnpm（Node 自带，一次即可）
+pnpm install && pnpm run build
 ```
 
 然后复制 `packages/connector/.env.example` 为 `packages/connector/.env`，填三行：
@@ -108,7 +109,7 @@ KIMI_LOCAL_URL=http://127.0.0.1:58627
 启动：
 
 ```bash
-npm run start:connector
+pnpm run start:connector
 ```
 
 看到 `已连接 gateway` 就说明链路通了。Windows 下想让它开机自启、后台常驻，方法见 [Connector 部署说明](../packages/connector/README.md)（任务计划程序或 NSSM，任选其一）。
@@ -128,7 +129,7 @@ A：kimi web 的 bearer token 只存在云服务器的配置文件里，浏览�
 A：他只能看到一个登录框。密码是 argon2id 哈希存储的，1 分钟试 10 次就会被限流，所有尝试都会记进审计日志，管理台里一目了然。你还可以在管理台直接封禁他的 IP，或者开启 TOTP 双因素认证（手机上的验证器 App 扫码即可）。
 
 **Q：我忘记了管理员密码？**
-A：SSH 到云服务器，进项目目录重新跑 `npm run setup` 重置即可。
+A：SSH 到云服务器，进项目目录重新跑 `pnpm run setup` 重置即可。
 
 **Q：家里电脑关机/断网了会怎样？**
 A：网关会显示"Connector 离线"，你的手机端会看到提示而不是报错页面。电脑恢复后 Connector 会自动重连（指数退避），无需人工干预。

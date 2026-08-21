@@ -8,15 +8,13 @@
   "engines": {
     "node": ">=22.5"
   },
-  "workspaces": [
-    "packages/*"
-  ],
+  "packageManager": "pnpm@10.18.3",
   "scripts": {
     "dev:gateway": "tsx watch packages/gateway/src/index.ts",
     "dev:connector": "tsx watch packages/connector/src/index.ts",
     "setup": "tsx packages/gateway/scripts/setup.ts",
-    "build": "npm run build -w @kimi-gate/shared && npm run build -w @kimi-gate/gateway && npm run build -w @kimi-gate/connector",
-    "test": "npm run build -w @kimi-gate/shared && node --import tsx --test \"packages/gateway/tests/*.test.ts\" \"packages/connector/tests/*.test.ts\"",
+    "build": "pnpm -F @kimi-gate/shared build && pnpm -F @kimi-gate/gateway build && pnpm -F @kimi-gate/connector build",
+    "test": "pnpm -F @kimi-gate/shared build && node --import tsx --test \"packages/gateway/tests/*.test.ts\" \"packages/connector/tests/*.test.ts\"",
     "smoke": "node scripts/smoke.mjs",
     "start:gateway": "node packages/gateway/dist/index.js",
     "start:connector": "node packages/connector/dist/index.js",

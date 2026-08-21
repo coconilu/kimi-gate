@@ -8,16 +8,16 @@
 
 ```env
 GATEWAY_URL=wss://gate.example.com     # 你的 Gateway 域名
-CONNECTOR_KEY=...                      # gateway 上 `npm run setup` 输出的配对密钥
+CONNECTOR_KEY=...                      # gateway 上 `pnpm run setup` 输出的配对密钥
 KIMI_LOCAL_URL=http://127.0.0.1:58627  # 本地 kimi web（默认即可）
 ```
 
 ## 运行
 
 ```bash
-npm run build          # 在仓库根目录先构建
+pnpm run build          # 在仓库根目录先构建
 cd packages/connector
-npm run start          # 前台运行（开发）
+pnpm run start          # 前台运行（开发）
 ```
 
 Connector 自带指数退避重连（1s→30s 上限，含抖动）与心跳保活，断网恢复后会自动重连。

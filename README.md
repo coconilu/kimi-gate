@@ -40,11 +40,11 @@
 - Connector：指数退避自动重连、心跳保活、HTTP + WS 转发本地 kimi web
 - 数据库：SQLite（Node 内置 `node:sqlite`，零原生依赖、零外部服务）
 
-> **运行要求**：Node.js ≥ 22.5（`node:sqlite`）。Node 22.5–23.x 需加 `--experimental-sqlite`；**推荐 Node 24**（免 flag，`crypto.argon2` 也可用）。
+> **运行要求**：Node.js ≥ 22.5（`node:sqlite`）。Node 22.5–23.x 需加 `--experimental-sqlite`；**推荐 Node 24**（免 flag，`crypto.argon2` 也可用）。包管理用 **pnpm**（Node 自带 corepack：`corepack enable` 一次即可，仓库已用 `packageManager` 字段锁定 pnpm 版本）。
 
 ## 快速开始
 
-`npm run setup` 初始化向导会让你选择上游模式（A = 同机直连，B = 隧道），也可事后改 `.env` 里的 `UPSTREAM_MODE`。
+`pnpm run setup` 初始化向导会让你选择上游模式（A = 同机直连，B = 隧道），也可事后改 `.env` 里的 `UPSTREAM_MODE`。
 
 ### 路线 A：同机直连（kimi web 与 Gateway 同机）
 
@@ -67,7 +67,7 @@
 git clone <repo> kimi-gate && cd kimi-gate
 
 # 1. 初始化（生成密钥、写入 .env，向导中选择路线 A 或 B）
-npm install && npm run setup        # 按提示设置密码、粘贴 kimi bearer token
+pnpm install && pnpm run setup        # 按提示设置密码、粘贴 kimi bearer token
 
 # 2. 配置域名（Caddy 自动签 Let's Encrypt）
 echo "DOMAIN=gate.example.com" >> .env
@@ -80,7 +80,7 @@ docker compose up -d --build
 
 ```bash
 git clone <repo> kimi-gate && cd kimi-gate
-sudo bash scripts/install.sh        # 检测 Node → npm ci → build → 初始化向导 → 安装 systemd unit
+sudo bash scripts/install.sh        # 检测 Node → pnpm install → build → 初始化向导 → 安装 systemd unit
 ```
 
 `install.sh` 会生成并启用 `kimi-gate-gateway.service`（模板见 `scripts/kimi-gate-gateway.service`）。
@@ -90,14 +90,14 @@ Gateway 本身监听 HTTP，请在前面配 TLS 反代（仓库自带 `Caddyfile
 
 ```powershell
 git clone <repo> kimi-gate && cd kimi-gate
-npm install && npm run build
+pnpm install && pnpm run build
 
 # 写配置：复制 packages/connector/.env.example 为 packages/connector/.env，填三项：
 #   GATEWAY_URL=wss://gate.example.com
-#   CONNECTOR_KEY=<gateway 服务器上 npm run setup 输出的配对密钥>
+#   CONNECTOR_KEY=<gateway 服务器上 pnpm run setup 输出的配对密钥>
 #   KIMI_LOCAL_URL=http://127.0.0.1:58627
 cd packages/connector
-npm run start
+pnpm run start
 ```
 
 Connector 详细说明（含 **Windows 下用 NSSM / 任务计划程序注册为服务**）见 [packages/connector/README.md](packages/connector/README.md)。
@@ -110,17 +110,17 @@ Connector 详细说明（含 **Windows 下用 NSSM / 任务计划程序注册为
 ## 开发
 
 ```bash
-npm install          # 安装依赖（npm workspaces）
-npm run setup        # 交互式初始化 gateway 配置
-npm run build        # tsc 构建全部包
-npm test             # node:test 单元测试 + 端到端集成测试
-npm run dev:gateway  # tsx watch 开发模式
-npm run dev:connector
+pnpm install          # 安装依赖（pnpm workspaces）
+pnpm run setup        # 交互式初始化 gateway 配置
+pnpm run build        # tsc 构建全部包
+pnpm test            # node:test 单元测试 + 端到端集成测试
+pnpm run dev:gateway  # tsx watch 开发模式
+pnpm run dev:connector
 ```
 
 ## 配置项
 
-### Gateway（`packages/gateway/.env`，由 `npm run setup` 生成）
+### Gateway（`packages/gateway/.env`，由 `pnpm run setup` 生成）
 
 | 变量 | 必填 | 默认 | 说明 |
 |---|---|---|---|
