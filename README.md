@@ -212,6 +212,17 @@ kimi-gate/
 └── Caddyfile
 ```
 
+## 参与开发
+
+`main` 分支受保护：**禁止直接 push / 直接合并**，所有改动走 Pull Request：
+
+1. 从 `main` 切功能分支：`git checkout -b feat/xxx`（或 `fix/xxx`、`chore/xxx`）
+2. 提交后推送分支并开 PR：`gh pr create`
+3. PR 的 CI（构建 + 全部测试）必须通过，之后 squash merge
+4. 发布：合并后在最新 `main` 上打 tag（`git tag vX.Y.Z && git push --tags`），自动发布 npm 包
+
+本地开发：`pnpm install && pnpm build && pnpm test`（Node ≥ 22.5，pnpm 经 corepack 启用）。
+
 ## License
 
 [MIT](LICENSE)
