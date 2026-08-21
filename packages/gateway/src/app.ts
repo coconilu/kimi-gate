@@ -72,6 +72,17 @@ export function createGateway(config: GatewayConfig): Gateway {
     return token;
   };
 
+  // Token for rendering into a page: reuse the existing cookie when it holds
+  // a valid signed token instead of rotating on every GET. Rotating per-GET
+  // breaks real browsers — a second tab, an extension probe, or a prefetch
+  // hitting GET /login invalidates the form the user is about to submit.
+  // Tokens are HMAC-signed, so reuse does not weaken forgery resistance.
+  const csrfForPage = (req: Request, res: Response): string => {
+    const existing = parseCookies(req.headers.cookie)[CSRF_COOKIE];
+    if (verifyCsrf(config.sessionSecret, existing)) return existing;
+    return setCsrfCookie(req, res);
+  };
+
   const csrfFromRequest = (req: Request): string | undefined => {
     const bodyToken = (req.body as Record<string, unknown> | undefined)?.csrf;
     const headerToken = req.get('x-csrf-token');
@@ -134,7 +145,7 @@ export function createGateway(config: GatewayConfig): Gateway {
 
   app.get('/login', (req, res) => {
     if (sessionFromRequest(req)) return res.redirect(302, '/');
-    const csrf = setCsrfCookie(req, res);
+    const csrf = csrfForPage(req, res);
     res.type('html').send(loginPage({ csrf, totp: config.totpSecret !== null }));
   });
 
@@ -142,8 +153,7 @@ export function createGateway(config: GatewayConfig): Gateway {
     const { ip, ua, device } = clientInfo(req);
     const fail = (result: Parameters<typeof recordAttempt>[1]['result'], reason: string, status: number, msg: string) => {
       recordAttempt(db, { ip, ua, device, result, reason });
-      const cookies = parseCookies(req.headers.cookie);
-      const csrf = verifyCsrf(config.sessionSecret, cookies[CSRF_COOKIE]) ? cookies[CSRF_COOKIE] : setCsrfCookie(req, res);
+      const csrf = csrfForPage(req, res);
       res.status(status).type('html').send(loginPage({ csrf, totp: config.totpSecret !== null, error: msg }));
     };
 
@@ -185,7 +195,7 @@ export function createGateway(config: GatewayConfig): Gateway {
 
   // --- admin console ---
   app.get('/admin', requireAuth, (req: AuthedRequest, res) => {
-    const csrf = setCsrfCookie(req, res);
+    const csrf = csrfForPage(req, res);
     if (!req.session!.admin_ok) {
       res.type('html').send(adminConfirmPage({ csrf }));
       return;
@@ -194,9 +204,8 @@ export function createGateway(config: GatewayConfig): Gateway {
   });
 
   app.post('/admin/verify', requireAuth, urlencoded, async (req: AuthedRequest, res) => {
-    const cookies = parseCookies(req.headers.cookie);
     const renderError = (msg: string) => {
-      const csrf = verifyCsrf(config.sessionSecret, cookies[CSRF_COOKIE]) ? cookies[CSRF_COOKIE] : setCsrfCookie(req, res);
+      const csrf = csrfForPage(req, res);
       res.status(401).type('html').send(adminConfirmPage({ csrf, error: msg }));
     };
     if (!csrfOk(req)) {

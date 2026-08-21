@@ -11,6 +11,7 @@ import WebSocket, { WebSocketServer } from 'ws';
 import { createGateway, type Gateway } from '../src/app.js';
 import type { GatewayConfig } from '../src/config.js';
 import { hashPassword } from '../src/password.js';
+import { issueCsrf } from '../src/csrf.js';
 import { startConnector, type ConnectorHandle } from '../../connector/src/client.js';
 
 const KIMI_TOKEN = 'test-kimi-token-123';
@@ -192,14 +193,15 @@ test('禁用 Cookie 的浏览器可凭签名 token 登录（csrf 兼容回退）
 test('cookie 与表单 token 不一致仍拒绝登录', async () => {
   jar.delete('kg_session'); // 避免已登录状态被重定向到 /
   const p1 = await fetchGw('/login');
-  const staleCsrf = extractCsrf(await p1.text());
-  await fetchGw('/login'); // 第二次 GET 轮换 kg_csrf cookie
+  const formCsrf = extractCsrf(await p1.text());
+  // 伪造一个签名合法但与表单 token 不同的 cookie（模拟多标签/扩展导致的不一致）
+  jar.set('kg_csrf', issueCsrf('test-session-secret'));
   const res = await fetchGw('/login', {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ csrf: staleCsrf, password: ADMIN_PASSWORD }),
+    body: new URLSearchParams({ csrf: formCsrf, password: ADMIN_PASSWORD }),
   });
-  assert.equal(res.status, 403, 'cookie 已轮换、表单为旧 token 时应拒绝');
+  assert.equal(res.status, 403, 'cookie 与表单 token 不一致时应拒绝');
   // 重新登录，恢复后续用例依赖的会话
   const p2 = await fetchGw('/login');
   const freshCsrf = extractCsrf(await p2.text());
@@ -209,6 +211,22 @@ test('cookie 与表单 token 不一致仍拒绝登录', async () => {
     body: new URLSearchParams({ csrf: freshCsrf, password: ADMIN_PASSWORD }),
   });
   assert.equal(relogin.status, 302);
+});
+
+test('重复 GET /login 不再轮换已有 csrf token（真实浏览器多标签/扩展场景）', async () => {
+  jar.delete('kg_session');
+  const p1 = await fetchGw('/login');
+  const first = extractCsrf(await p1.text());
+  const p2 = await fetchGw('/login');
+  const second = extractCsrf(await p2.text());
+  assert.equal(second, first, '已有合法 token 时再次 GET 应复用而不是轮换');
+  // 用第一次渲染的表单提交，应依然成功
+  const res = await fetchGw('/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ csrf: first, password: ADMIN_PASSWORD }),
+  });
+  assert.equal(res.status, 302);
 });
 
 test('HTTP 流量经隧道到达 kimi 且注入 Authorization 头', async () => {
