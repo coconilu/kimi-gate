@@ -7,7 +7,7 @@
  * 启动前先自检（本地 kimi web → Gateway 握手认证），全过才进入常驻连接；
  * --check 只自检不常驻，用于部署后验证。
  */
-import { loadConfig, parseCliArgs } from './config.js';
+import { loadConfig, parseCliArgs, accessUrlFromGateway } from './config.js';
 import os from 'node:os';
 import { startConnector } from './client.js';
 import { checkTarget, checkGateway } from './preflight.js';
@@ -107,7 +107,9 @@ async function main(): Promise<number> {
     return 0;
   }
 
+  const accessUrl = accessUrlFromGateway(config.gatewayUrl);
   console.log('\n✅ 自检通过，Connector 启动中。保持本进程运行即可远程访问；Ctrl+C 停止。');
+  console.log(`   远程访问地址：${accessUrl}  （手机/电脑浏览器打开，输密码即可使用）`);
   console.log('   需要开机自启的话，加 --autostart 跑一次即可注册（默认不自启）。\n');
 
   const handle = startConnector(config);

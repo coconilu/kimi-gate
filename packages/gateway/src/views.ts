@@ -141,12 +141,24 @@ export function adminDashboardPage(opts: { csrf: string }): string {
   </section>
   <section id="connector-section" style="display:none">
     <h2>Connector 接入（家里电脑）</h2>
-    <div style="font-size:12.5px;color:#9aa0aa;margin-bottom:10px">在家里电脑上安装 Node.js（≥22.5）后，复制下面这条命令运行即可接入，无需克隆仓库；自带连通性自检。配对密钥包含在命令中，请勿泄露。</div>
+    <div style="font-size:12.5px;color:#9aa0aa;margin-bottom:10px">在家里电脑上安装 Node.js（≥22.5）后，复制下面的命令运行即可接入，无需克隆仓库；自带连通性自检，成功后会打印访问地址。配对密钥包含在命令中，请勿泄露。</div>
+    <label style="display:flex;align-items:center;gap:6px;font-size:13px;margin-bottom:10px;cursor:pointer">
+      <input type="checkbox" id="connector-autostart" onchange="renderConnectorCmds()" style="width:auto;margin:0">
+      开机自启（重启电脑后自动接入；不勾选则关掉命令窗口就停止）
+    </label>
+    <div style="font-size:12.5px;color:#9aa0aa;margin-bottom:4px">启动：</div>
     <div class="row">
       <input id="connector-cmd" readonly style="flex:1;font-family:ui-monospace,monospace">
-      <button onclick="copyConnectorCmd()">复制</button>
+      <button onclick="copyInput('connector-cmd', this)">复制</button>
     </div>
-    <div style="font-size:12.5px;color:#9aa0aa">先加 <code>--check</code> 可只自检不常驻；常驻/开机自启方法见仓库 packages/connector/README.md。</div>
+    <div id="connector-stop-block" style="display:none;margin-top:10px">
+      <div style="font-size:12.5px;color:#9aa0aa;margin-bottom:4px">关闭（撤销自启）：</div>
+      <div class="row">
+        <input id="connector-stop-cmd" readonly style="flex:1;font-family:ui-monospace,monospace">
+        <button onclick="copyInput('connector-stop-cmd', this)">复制</button>
+      </div>
+    </div>
+    <div id="connector-stop-hint" style="font-size:12.5px;color:#9aa0aa;margin-top:10px">未开启自启时，在运行命令的窗口按 Ctrl+C 即可停止。先加 <code>--check</code> 可只自检不常驻，适合部署后验证。</div>
   </section>
 </main>
 <script>
@@ -169,17 +181,29 @@ async function loadStatus() {
   el.className = 'pill ' + (s.tunnelOnline ? 'on' : 'off');
   if (s.connectorCommand) {
     document.getElementById('connector-section').style.display = '';
-    document.getElementById('connector-cmd').value = s.connectorCommand;
+    connectorBaseCmd = s.connectorCommand;
+    renderConnectorCmds();
   }
 }
-async function copyConnectorCmd() {
-  const el = document.getElementById('connector-cmd');
+let connectorBaseCmd = '';
+function renderConnectorCmds() {
+  const auto = document.getElementById('connector-autostart').checked;
+  document.getElementById('connector-cmd').value = connectorBaseCmd + (auto ? ' --autostart' : '');
+  document.getElementById('connector-stop-block').style.display = auto ? '' : 'none';
+  document.getElementById('connector-stop-hint').style.display = auto ? 'none' : '';
+  if (auto) {
+    document.getElementById('connector-stop-cmd').value = 'npx kimi-gate-connector --no-autostart';
+  }
+}
+async function copyInput(id, btn) {
+  const el = document.getElementById(id);
   el.select();
   try {
     await navigator.clipboard.writeText(el.value);
   } catch {
     document.execCommand('copy');
   }
+  if (btn) { const t = btn.textContent; btn.textContent = '已复制'; setTimeout(() => { btn.textContent = t; }, 1500); }
 }
 async function loadLogs() {
   const p = new URLSearchParams();

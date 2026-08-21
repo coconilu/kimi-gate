@@ -1,6 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { loadConfig, parseCliArgs } from '../src/config.js';
+import { loadConfig, parseCliArgs, accessUrlFromGateway } from '../src/config.js';
+
+test('accessUrlFromGateway：wss→https、ws→http', () => {
+  assert.equal(accessUrlFromGateway('wss://kimi.example.com'), 'https://kimi.example.com');
+  assert.equal(accessUrlFromGateway('ws://127.0.0.1:3000'), 'http://127.0.0.1:3000');
+});
 
 test('connector 配置：默认值与校验', () => {
   const cfg = loadConfig({

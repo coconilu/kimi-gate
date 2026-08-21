@@ -33,6 +33,11 @@ export function loadEnvFile(file: string): void {
   }
 }
 
+/** 从 gateway 地址推导用户浏览器访问地址：wss://gate.example.com → https://gate.example.com */
+export function accessUrlFromGateway(gatewayUrl: string): string {
+  return gatewayUrl.replace(/^ws(s?):\/\//, 'http$1://');
+}
+
 export function loadConfig(overrides: Partial<ConnectorConfig> = {}): ConnectorConfig {
   const envFile = process.env.CONNECTOR_CONFIG ?? path.resolve(process.cwd(), '.env');
   loadEnvFile(envFile);
