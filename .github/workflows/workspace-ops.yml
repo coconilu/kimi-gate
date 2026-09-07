@@ -1,0 +1,73 @@
+name: Workspace Ops build
+run-name: workspace-ops:${{ inputs.request_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: Ops request UUID
+        type: string
+        required: true
+      commit:
+        description: Exact source commit
+        type: string
+        required: true
+      project_id:
+        description: Registered Ops project ID
+        type: string
+        required: true
+      build_profile:
+        description: Validated build commands and artifact path (JSON)
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: workspace-ops-${{ inputs.request_id }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout the trusted workflow helper
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          path: pipeline
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+      - name: Checkout requested source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.commit }}
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Enable the repository's pinned package manager
+        run: corepack enable
+      - name: Build, test and package
+        id: package
+        env:
+          OPS_REQUEST_ID: ${{ inputs.request_id }}
+          OPS_COMMIT: ${{ inputs.commit }}
+          OPS_PROJECT_ID: ${{ inputs.project_id }}
+          OPS_BUILD_PROFILE: ${{ inputs.build_profile }}
+          OPS_RUNNER_TOKEN: ${{ secrets.WORKSPACE_OPS_RUNNER_TOKEN }}
+          OPS_URL: https://ops.ai-workspace.top
+        run: python3 pipeline/.github/scripts/workspace_ops_build.py
+      - name: Upload verified deployment artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: workspace-ops-${{ inputs.request_id }}
+          path: |
+            ops-artifact/release.tar.gz
+            ops-artifact/release-manifest.json
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
