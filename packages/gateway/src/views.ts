@@ -4,13 +4,13 @@ function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function page(title: string, body: string): string {
+function page(site: string, title: string, body: string): string {
   return `<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(title)} · kimi-gate</title>
+<title>${esc(title)} · ${esc(site)}</title>
 <style>
   :root { color-scheme: light dark; }
   body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #0f1115; color: #e6e6e6; }
@@ -29,10 +29,10 @@ function page(title: string, body: string): string {
 </html>`;
 }
 
-export function loginPage(opts: { csrf: string; error?: string; totp: boolean }): string {
-  return page('登录', `
+export function loginPage(opts: { csrf: string; error?: string; totp: boolean; site: string }): string {
+  return page(opts.site, '登录', `
 <div class="card">
-  <h1>kimi-gate 登录</h1>
+  <h1>${esc(opts.site)} 登录</h1>
   <form method="post" action="/login" autocomplete="off">
     <input type="hidden" name="csrf" value="${esc(opts.csrf)}">
     <label for="password">密码</label>
@@ -42,12 +42,12 @@ export function loginPage(opts: { csrf: string; error?: string; totp: boolean })
     <button type="submit">登录</button>
   </form>
   ${opts.error ? `<div class="err">${esc(opts.error)}</div>` : ''}
-  <div class="brand">kimi-gate · 自托管安全网关</div>
+  <div class="brand">${esc(opts.site)} · 自托管安全网关</div>
 </div>`);
 }
 
-export function adminConfirmPage(opts: { csrf: string; error?: string }): string {
-  return page('管理台确认', `
+export function adminConfirmPage(opts: { csrf: string; error?: string; site: string }): string {
+  return page(opts.site, '管理台确认', `
 <div class="card">
   <h1>进入管理台</h1>
   <form method="post" action="/admin/verify" autocomplete="off">
@@ -60,14 +60,14 @@ export function adminConfirmPage(opts: { csrf: string; error?: string }): string
 </div>`);
 }
 
-export function adminDashboardPage(opts: { csrf: string }): string {
+export function adminDashboardPage(opts: { csrf: string; site: string }): string {
   return `<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="csrf-token" content="${esc(opts.csrf)}">
-<title>管理台 · kimi-gate</title>
+<title>管理台 · ${esc(opts.site)}</title>
 <style>
   :root { color-scheme: dark; }
   body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; background: #0f1115; color: #e6e6e6; }
@@ -101,7 +101,7 @@ export function adminDashboardPage(opts: { csrf: string }): string {
 </head>
 <body>
 <header>
-  <h1>kimi-gate 管理台</h1>
+  <h1>${esc(opts.site)} 管理台</h1>
   <span id="tunnel" class="pill off">隧道: …</span>
   <a class="btn" href="/" target="_blank">打开应用</a>
   <a class="btn" href="/logout">退出登录</a>

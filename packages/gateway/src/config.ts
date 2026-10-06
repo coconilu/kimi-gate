@@ -16,6 +16,8 @@ export interface GatewayConfig {
   kimiBearerToken: string;
   connectorKey: string;
   totpSecret: string | null;
+  /** 登录页/管理台展示的品牌名（标题、页脚），默认 kimi-gate */
+  siteName?: string;
   dbPath: string;
   /** behind a TLS-terminating proxy (Caddy): trust X-Forwarded-* and set Secure cookies */
   trustProxy: boolean;
@@ -64,6 +66,7 @@ export function loadConfig(overrides: Partial<GatewayConfig> = {}): GatewayConfi
     kimiBearerToken: process.env.KIMI_BEARER_TOKEN ?? '',
     connectorKey: process.env.CONNECTOR_KEY ?? '',
     totpSecret: process.env.TOTP_SECRET || null,
+    siteName: process.env.SITE_NAME?.trim() || 'kimi-gate',
     dbPath: process.env.DB_PATH ?? path.resolve(process.cwd(), 'kimi-gate.db'),
     trustProxy: (process.env.TRUST_PROXY ?? 'true') !== 'false',
     tunnelTimeoutMs: Number(process.env.TUNNEL_TIMEOUT_MS ?? 30000),
