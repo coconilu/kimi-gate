@@ -27,7 +27,11 @@ const REQUEST_STRIP = new Set([
   ...HOP_BY_HOP, 'host', 'content-length', 'cookie', 'authorization',
 ]);
 
-const RESPONSE_STRIP = new Set([...HOP_BY_HOP, 'content-length']);
+// content-encoding 必须剥掉：两个上游实现（tunnel connector 与 LocalUpstream）
+// 都基于 fetch，undici 会透明解压 body，但响应头里仍带着原始的
+// content-encoding；原样转发会让浏览器对已解压的 body 再次解压
+//（ERR_CONTENT_DECODING_FAILED）。编码交给外层反代（如 Caddy encode）。
+const RESPONSE_STRIP = new Set([...HOP_BY_HOP, 'content-length', 'content-encoding']);
 
 function sanitizeRequestHeaders(raw: IncomingMessage['headers'], kimiToken: string): HeaderMap {
   const out: HeaderMap = {};
