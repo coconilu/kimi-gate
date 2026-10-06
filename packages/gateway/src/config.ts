@@ -17,7 +17,7 @@ export interface GatewayConfig {
   connectorKey: string;
   totpSecret: string | null;
   /** 登录页/管理台展示的品牌名（标题、页脚），默认 kimi-gate */
-  siteName: string;
+  siteName?: string;
   dbPath: string;
   /** behind a TLS-terminating proxy (Caddy): trust X-Forwarded-* and set Secure cookies */
   trustProxy: boolean;

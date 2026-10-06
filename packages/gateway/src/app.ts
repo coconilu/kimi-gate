@@ -33,6 +33,7 @@ interface AuthedRequest extends Request {
 }
 
 export function createGateway(config: GatewayConfig): Gateway {
+  const siteName = config.siteName?.trim() || 'kimi-gate';
   const db = openDb(config.dbPath);
   const isTunnel = config.upstreamMode === 'tunnel';
   const hub = isTunnel
@@ -154,7 +155,7 @@ export function createGateway(config: GatewayConfig): Gateway {
   app.get('/login', (req, res) => {
     if (sessionFromRequest(req)) return res.redirect(302, '/');
     const csrf = csrfForPage(req, res);
-    res.type('html').send(loginPage({ csrf, totp: config.totpSecret !== null, site: config.siteName }));
+    res.type('html').send(loginPage({ csrf, totp: config.totpSecret !== null, site: siteName }));
   });
 
   app.post('/login', urlencoded, async (req, res) => {
@@ -162,7 +163,7 @@ export function createGateway(config: GatewayConfig): Gateway {
     const fail = (result: Parameters<typeof recordAttempt>[1]['result'], reason: string, status: number, msg: string) => {
       recordAttempt(db, { ip, ua, device, result, reason });
       const csrf = csrfForPage(req, res);
-      res.status(status).type('html').send(loginPage({ csrf, totp: config.totpSecret !== null, error: msg, site: config.siteName }));
+      res.status(status).type('html').send(loginPage({ csrf, totp: config.totpSecret !== null, error: msg, site: siteName }));
     };
 
     if (!csrfOk(req)) {
@@ -205,16 +206,16 @@ export function createGateway(config: GatewayConfig): Gateway {
   app.get('/admin', requireAuth, (req: AuthedRequest, res) => {
     const csrf = csrfForPage(req, res);
     if (!req.session!.admin_ok) {
-      res.type('html').send(adminConfirmPage({ csrf, site: config.siteName }));
+      res.type('html').send(adminConfirmPage({ csrf, site: siteName }));
       return;
     }
-    res.type('html').send(adminDashboardPage({ csrf, site: config.siteName }));
+    res.type('html').send(adminDashboardPage({ csrf, site: siteName }));
   });
 
   app.post('/admin/verify', requireAuth, urlencoded, async (req: AuthedRequest, res) => {
     const renderError = (msg: string) => {
       const csrf = csrfForPage(req, res);
-      res.status(401).type('html').send(adminConfirmPage({ csrf, error: msg, site: config.siteName }));
+      res.status(401).type('html').send(adminConfirmPage({ csrf, error: msg, site: siteName }));
     };
     if (!csrfOk(req)) {
       return renderError('表单校验失败，请重试');
